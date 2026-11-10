@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 
+from sports_predictor.metrics import log_loss
+
 OUTCOMES = ["H", "D", "A"]
 
 
@@ -79,3 +81,23 @@ def elo_probabilities(train_diffs, train_outcomes, test_diffs) -> np.ndarray:
     model.fit(np.asarray(train_diffs).reshape(-1, 1) / scale, train_outcomes)
     # predict_proba devuelve las columnas en el orden de las clases 0, 1, 2, es decir H, D, A.
     return model.predict_proba(np.asarray(test_diffs).reshape(-1, 1) / scale)
+
+
+def select_elo_params(diffs_by_params: dict, outcomes, folds):
+    """Elige los parámetros del Elo (por ejemplo (k, ventaja de local)) con menor log loss de validación.
+
+    `diffs_by_params` asocia cada combinación de parámetros con sus diferencias de Elo previas a
+    cada partido. `folds` es una lista de pares (máscara de ajuste, máscara de validación): para
+    cada combinación se ajusta la regresión con los partidos de ajuste, se mide en los de
+    validación y se promedia el log loss de todos los pares. Para que no haya fuga de datos, todas
+    las máscaras deben quedar dentro del entrenamiento, con la validación después del ajuste; la
+    temporada de prueba no participa. En caso de empate gana la primera combinación.
+    """
+    def validation_loss(diffs):
+        losses = [
+            log_loss(elo_probabilities(diffs[fit], outcomes[fit], diffs[val]), outcomes[val])
+            for fit, val in folds
+        ]
+        return sum(losses) / len(losses)
+
+    return min(diffs_by_params, key=lambda params: validation_loss(diffs_by_params[params]))
