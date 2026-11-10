@@ -8,7 +8,7 @@ Generado por `python scripts/evaluate_baselines.py`. No editar a mano.
 - **Elo:** K = 20, ventaja de local = 60 puntos. Valores fijos, sin ajustar.
 - **Mercado:** probabilidades implícitas de las cuotas con el margen removido (normalización proporcional).
 - En las tres métricas, menos es mejor.
-- **Limitaciones:** todos los equipos empiezan con el mismo Elo en la primera temporada, así que los primeros partidos de entrenamiento aportan diferencias poco informativas. La curva de calibración que pide la especificación todavía no está hecha.
+- **Limitaciones:** todos los equipos empiezan con el mismo Elo en la primera temporada, así que los primeros partidos de entrenamiento aportan diferencias poco informativas.
 
 ## Global (los 3040 partidos de prueba juntos)
 
@@ -57,3 +57,62 @@ Generado por `python scripts/evaluate_baselines.py`. No editar a mano.
 | 2023/24 | 0.2338 | 0.1895 | 0.1838 | 0.1839 |
 | 2024/25 | 0.2354 | 0.2017 | 0.1974 | 0.1972 |
 | 2025/26 | 0.2277 | 0.2138 | 0.2053 | 0.2057 |
+
+## Calibración
+
+Se juntan las tres probabilidades de cada partido (local, empate, visitante) y se agrupan en tramos de 10 puntos. `predicho` es la probabilidad promedio que dio el modelo en el tramo; `observado` es la frecuencia con la que ese resultado ocurrió. Un modelo bien calibrado tiene ambos valores parecidos. Los tramos con pocos casos (`n` bajo) son ruidosos.
+
+![Curva de calibración](baseline_calibration.png)
+
+### Frecuencias históricas
+
+| Tramo | n | predicho | observado |
+|---|---|---|---|
+| 0.2 a 0.3 | 3420 | 0.2434 | 0.2421 |
+| 0.3 a 0.4 | 2660 | 0.3156 | 0.3293 |
+| 0.4 a 0.5 | 3040 | 0.4500 | 0.4395 |
+
+### Elo con ventaja de local
+
+| Tramo | n | predicho | observado |
+|---|---|---|---|
+| 0.0 a 0.1 | 539 | 0.0644 | 0.1020 |
+| 0.1 a 0.2 | 1475 | 0.1574 | 0.1647 |
+| 0.2 a 0.3 | 3387 | 0.2461 | 0.2616 |
+| 0.3 a 0.4 | 954 | 0.3479 | 0.3480 |
+| 0.4 a 0.5 | 894 | 0.4475 | 0.4284 |
+| 0.5 a 0.6 | 730 | 0.5497 | 0.5014 |
+| 0.6 a 0.7 | 594 | 0.6474 | 0.6229 |
+| 0.7 a 0.8 | 403 | 0.7464 | 0.6948 |
+| 0.8 a 0.9 | 139 | 0.8375 | 0.8633 |
+| 0.9 a 1.0 | 5 | 0.9072 | 1.0000 |
+
+### Mercado: promedio
+
+| Tramo | n | predicho | observado |
+|---|---|---|---|
+| 0.0 a 0.1 | 379 | 0.0720 | 0.0686 |
+| 0.1 a 0.2 | 1478 | 0.1559 | 0.1570 |
+| 0.2 a 0.3 | 3407 | 0.2552 | 0.2539 |
+| 0.3 a 0.4 | 1306 | 0.3466 | 0.3400 |
+| 0.4 a 0.5 | 902 | 0.4475 | 0.4324 |
+| 0.5 a 0.6 | 702 | 0.5495 | 0.5598 |
+| 0.6 a 0.7 | 485 | 0.6485 | 0.6845 |
+| 0.7 a 0.8 | 317 | 0.7428 | 0.7256 |
+| 0.8 a 0.9 | 142 | 0.8379 | 0.8873 |
+| 0.9 a 1.0 | 2 | 0.9058 | 1.0000 |
+
+### Mercado: Bet365
+
+| Tramo | n | predicho | observado |
+|---|---|---|---|
+| 0.0 a 0.1 | 391 | 0.0734 | 0.0742 |
+| 0.1 a 0.2 | 1512 | 0.1565 | 0.1594 |
+| 0.2 a 0.3 | 3424 | 0.2557 | 0.2538 |
+| 0.3 a 0.4 | 1233 | 0.3485 | 0.3431 |
+| 0.4 a 0.5 | 903 | 0.4493 | 0.4396 |
+| 0.5 a 0.6 | 691 | 0.5498 | 0.5499 |
+| 0.6 a 0.7 | 522 | 0.6498 | 0.6801 |
+| 0.7 a 0.8 | 296 | 0.7453 | 0.7196 |
+| 0.8 a 0.9 | 146 | 0.8365 | 0.8973 |
+| 0.9 a 1.0 | 2 | 0.9128 | 1.0000 |
