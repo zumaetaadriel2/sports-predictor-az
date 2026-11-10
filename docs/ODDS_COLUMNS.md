@@ -22,7 +22,7 @@ Número de partidos (de 380) que tienen las tres cuotas. Un 0 significa que la c
 | `WH` | William Hill | 380 | 380 | 380 | 380 | 380 | 380 | 380 | 380 | 380 | 289 | 0 |
 | `IW` | Interwetten | 380 | 380 | 380 | 380 | 380 | 380 | 380 | 380 | 198 | 0 | 0 |
 | `VC` | VC Bet | 380 | 380 | 380 | 380 | 380 | 380 | 380 | 380 | 380 | 0 | 0 |
-| `LB` | Ladbrokes | 380 | 380 | 380 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 286 |
+| `LB` (cierre `LBC` solo en 25/26, 281) | Ladbrokes | 380 | 380 | 380 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 286 |
 | `BbAv` / `BbMx` | Promedio y máximo del mercado (Betbrain) | 380 | 380 | 380 | 380 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | `Avg` / `Max` | Promedio y máximo del mercado | 0 | 0 | 0 | 0 | 380 | 380 | 380 | 380 | 380 | 380 | 380 |
 | `AvgC` / `MaxC` / `B365C` | Cierre: promedio, máximo y Bet365 | 0 | 0 | 0 | 0 | 380 | 380 | 380 | 380 | 380 | 380 | 380 |
@@ -40,18 +40,19 @@ Los significados de `BFD`, `BMGM`, `BV` y `CL` no se verificaron contra las nota
 2. **El promedio del mercado está completo, pero cambia de nombre:** `BbAvH/D/A` hasta 2018/19 y `AvgH/D/A` desde 2019/20.
    El limpiador los unifica bajo `AvgH/D/A` (y `BbMx*` bajo `Max*`).
 3. **Pinnacle de cierre (`PSC`) es la mejor referencia teórica** (casa de margen bajo, y el cierre resume toda la información previa
-   al partido), pero en 2025/26 solo llega hasta mediados de enero de 2026: faltan 170 partidos.
+   al partido), pero en 2025/26 solo llega hasta el 8 de enero de 2026: faltan los 170 partidos jugados desde el 17 de enero.
 4. **Las cuotas de cierre de las demás casas solo existen desde 2019/20.**
 5. **El margen de Bet365 casi se duplica en 2019/20:** pasa de entre 2,8 % y 3,1 % (2015/16 a 2018/19) a entre 5,3 % y 5,5 % desde 2019/20.
    Por eso siempre se quita el margen antes de comparar.
 6. Margen promedio por fuente en todo el periodo: Pinnacle de cierre 2,5 %, Pinnacle 2,7 %, promedio del mercado 4,5 %, Bet365 4,5 %.
-   El máximo del mercado (`Max*`) tiene margen cercano a cero o negativo porque combina la mejor cuota de cada casa;
-   no sirve como probabilidad de una casa real.
+   El máximo del mercado (`Max*`) combina la mejor cuota de cada casa, así que su margen es mucho menor (0,2 % en promedio;
+   entre -0,7 % y 0,2 % hasta 2023/24, 1,0 % en 2024/25 y 2,3 % en 2025/26). No representa a una casa real.
+   El de cierre de Pinnacle es la referencia de margen más bajo entre las casas reales.
 
 ## Decisiones
 
-- **Referencia de mercado para evaluar modelos: Bet365 (`B365`) y promedio del mercado (`Avg`).** Son las dos fuentes que cubren todos
-  los partidos, así que la comparación contra los modelos usa exactamente los mismos partidos. Pinnacle de cierre se guarda en el
+- **Referencia de mercado para evaluar modelos: Bet365 (`B365`) y promedio del mercado (`Avg`).** Son las dos fuentes de una casa o de un promedio que cubren todos
+  los partidos (el máximo `Max` también los cubre, pero no es una casa real), así que la comparación contra los modelos usa exactamente los mismos partidos. Pinnacle de cierre se guarda en el
   dataset limpio para usarla como referencia más exigente en las temporadas donde está completa.
 - **El dataset limpio conserva solo:** `B365`, `PS`, `PSC`, `Avg`, `Max` y `AvgC` (tres columnas cada una). El resto de casas
   va y viene entre temporadas y no aporta a la v1.
