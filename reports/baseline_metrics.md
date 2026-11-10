@@ -8,6 +8,7 @@ Generado por `python scripts/evaluate_baselines.py`. No editar a mano.
 - **Elo:** K = 20, ventaja de local = 60 puntos. Valores fijos, sin ajustar.
 - **Mercado:** probabilidades implícitas de las cuotas con el margen removido (normalización proporcional).
 - En las tres métricas, menos es mejor.
+- **Limitaciones:** todos los equipos empiezan con el mismo Elo en la primera temporada, así que los primeros partidos de entrenamiento aportan diferencias poco informativas. La curva de calibración que pide la especificación todavía no está hecha.
 
 ## Global (los 3040 partidos de prueba juntos)
 
