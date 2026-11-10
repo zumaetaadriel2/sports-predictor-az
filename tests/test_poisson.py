@@ -105,4 +105,4 @@ def test_walk_forward_matches_direct_fit():
     params = fit_poisson(past["HomeTeam"].map(idx), past["AwayTeam"].map(idx), past["FTHG"], past["FTAG"], 4, 5.0)
     last = matches.iloc[22:]
     direct_h, _ = expected_goals(params, last["HomeTeam"].map(idx), last["AwayTeam"].map(idx), 4)
-    assert rate_h[22:] == pytest.approx(direct_h, rel=1e-3)
+    assert rate_h[22:] == pytest.approx(direct_h, rel=1e-5)

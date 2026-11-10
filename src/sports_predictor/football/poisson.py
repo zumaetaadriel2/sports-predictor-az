@@ -55,7 +55,10 @@ def fit_poisson(home, away, home_goals, away_goals, n_teams: int, penalty: float
         return nll, grad
 
     x0 = np.zeros(2 + 2 * n_teams) if start is None else start
-    result = minimize(objective, x0, jac=True, method="L-BFGS-B")
+    # Tolerancias estrictas: así el resultado no depende del punto de partida.
+    result = minimize(objective, x0, jac=True, method="L-BFGS-B", options={"ftol": 1e-12, "gtol": 1e-6})
+    if not result.success:
+        raise RuntimeError(f"El ajuste de Poisson no convergió: {result.message}")
     return result.x
 
 
@@ -93,10 +96,10 @@ def outcome_probabilities(matrices) -> np.ndarray:
     ])
 
 
-def over_probability(matrices, line: float = 2.5) -> np.ndarray:
-    """Probabilidad de que el total de goles supere la línea (por defecto, más de 2.5)."""
+def over_probability(matrices) -> np.ndarray:
+    """Probabilidad de que el total de goles sea mayor que 2.5."""
     i, j = np.indices(matrices.shape[1:])
-    return matrices[:, (i + j) > line].sum(axis=1)
+    return matrices[:, (i + j) > 2.5].sum(axis=1)
 
 
 def walk_forward_expected_goals(matches: pd.DataFrame, first_index: int, penalty: float = 10.0):
@@ -104,9 +107,9 @@ def walk_forward_expected_goals(matches: pd.DataFrame, first_index: int, penalty
 
     `matches` debe venir en orden cronológico. Para los partidos de una fecha, el modelo se ajusta
     con TODOS los partidos de fechas estrictamente anteriores y nada más: no hay fuga de datos.
-    Reajustar en cada fecha (y no una vez por temporada) deja al modelo en igualdad de condiciones
-    con el Elo, que también se actualiza partido a partido. Los primeros `first_index` partidos
-    quedan en NaN.
+    Se reajusta en cada fecha (y no una vez por temporada) para que use la misma información que
+    el Elo, que también se actualiza partido a partido. A diferencia del Elo, todos los partidos
+    pasados pesan igual. Los primeros `first_index` partidos quedan en NaN.
     """
     teams = sorted(set(matches["HomeTeam"]) | set(matches["AwayTeam"]))
     index = {team: i for i, team in enumerate(teams)}
