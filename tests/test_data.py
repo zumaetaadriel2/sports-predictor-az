@@ -4,14 +4,14 @@ import pytest
 from sports_predictor.football.data import CLEAN_COLS, load_matches, load_season, season_label
 
 OLD = (
-    "Div,Date,HomeTeam,AwayTeam,FTHG,FTAG,FTR,HS,AS,B365H,B365D,B365A,BbAvH,BbAvD,BbAvA,PSCH,PSCD,PSCA\n"
-    "E0,14/08/16,B,C,1,1,D,9,9,2.0,3.0,4.0,2.1,3.1,4.1,2.2,3.2,4.2\n"
-    "E0,13/08/16,A,B,2,0,H,10,5,1.5,4.0,6.0,1.6,4.1,6.1,1.7,4.2,6.2\n"
-    ",,,,,,,,,,,,,,,,,\n"
+    "Div,Date,HomeTeam,AwayTeam,FTHG,FTAG,FTR,HS,AS,B365H,B365D,B365A,BbAvH,BbAvD,BbAvA,PSCH,PSCD,PSCA,BbAv>2.5,BbAv<2.5\n"
+    "E0,14/08/16,B,C,1,1,D,9,9,2.0,3.0,4.0,2.1,3.1,4.1,2.2,3.2,4.2,1.9,1.95\n"
+    "E0,13/08/16,A,B,2,0,H,10,5,1.5,4.0,6.0,1.6,4.1,6.1,1.7,4.2,6.2,1.8,2.05\n"
+    ",,,,,,,,,,,,,,,,,,,\n"
 )
 NEW = (
-    "﻿Div,Date,Time,HomeTeam,AwayTeam,FTHG,FTAG,FTR,HS,AS,B365H,B365D,B365A,AvgH,AvgD,AvgA,AvgCH,AvgCD,AvgCA\n"
-    "E0,09/08/2019,20:00,A,C,0,3,A,4,12,5.0,4.0,1.6,5.1,4.1,1.7,5.2,4.2,1.8\n"
+    "﻿Div,Date,Time,HomeTeam,AwayTeam,FTHG,FTAG,FTR,HS,AS,B365H,B365D,B365A,AvgH,AvgD,AvgA,AvgCH,AvgCD,AvgCA,Avg>2.5,Avg<2.5\n"
+    "E0,09/08/2019,20:00,A,C,0,3,A,4,12,5.0,4.0,1.6,5.1,4.1,1.7,5.2,4.2,1.8,1.7,2.2\n"
 )
 
 
@@ -69,3 +69,11 @@ def test_missing_result_is_rejected(tmp_path):
     (tmp_path / "E0_1617.csv").write_text(bad, encoding="utf-8")
     with pytest.raises(ValueError, match="sin fecha"):
         load_season(tmp_path / "E0_1617.csv")
+
+
+def test_over_under_odds_are_unified(raw_dir):
+    old = load_season(raw_dir / "E0_1617.csv")
+    new = load_season(raw_dir / "E0_1920.csv")
+    assert list(old["AvgOver25"]) == [1.8, 1.9]  # venía como BbAv>2.5
+    assert list(old["AvgUnder25"]) == [2.05, 1.95]
+    assert new["AvgOver25"].iloc[0] == 1.7
