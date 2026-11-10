@@ -154,8 +154,12 @@ def main() -> None:
         f"- **Elo fijo:** K = {ELO_K:g}, ventaja de local = {ELO_HOME_ADVANTAGE:g}.",
         "- **Mercado:** promedio de las casas, con el margen removido (normalización proporcional).",
         "- En todas las métricas, menos es mejor.",
-        "- **Limitaciones:** todavía no tiene la corrección de Dixon-Coles para marcadores bajos ni da más peso a los "
-        "partidos recientes. Un equipo recién ascendido empieza como equipo promedio hasta que acumula partidos.",
+        "- **Conclusión:** en 1X2 este Poisson queda por debajo del Elo fijo en las tres métricas, así que todavía no "
+        "cumple el criterio de éxito de la especificación. En más/menos de 2.5 mejora poco a la frecuencia histórica.",
+        "- **Limitaciones:** todos los partidos pasados pesan igual, por antiguos que sean; por eso el modelo empeora "
+        "frente al Elo a medida que acumula historia y falla con equipos cuyo nivel cambió (por ejemplo, ascendidos "
+        "que ya habían estado en la liga años atrás). Un equipo sin ningún partido previo empieza como equipo promedio. "
+        "Tampoco tiene todavía la corrección de Dixon-Coles para marcadores bajos.",
         "",
         f"## Resultado 1X2 (los {len(y_1x2)} partidos de prueba juntos)",
         "",

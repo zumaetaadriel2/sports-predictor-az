@@ -8,7 +8,8 @@ Generado por `python scripts/evaluate_poisson.py`. No editar a mano.
 - **Elo fijo:** K = 20, ventaja de local = 60.
 - **Mercado:** promedio de las casas, con el margen removido (normalización proporcional).
 - En todas las métricas, menos es mejor.
-- **Limitaciones:** todavía no tiene la corrección de Dixon-Coles para marcadores bajos ni da más peso a los partidos recientes. Un equipo recién ascendido empieza como equipo promedio hasta que acumula partidos.
+- **Conclusión:** en 1X2 este Poisson queda por debajo del Elo fijo en las tres métricas, así que todavía no cumple el criterio de éxito de la especificación. En más/menos de 2.5 mejora poco a la frecuencia histórica.
+- **Limitaciones:** todos los partidos pasados pesan igual, por antiguos que sean; por eso el modelo empeora frente al Elo a medida que acumula historia y falla con equipos cuyo nivel cambió (por ejemplo, ascendidos que ya habían estado en la liga años atrás). Un equipo sin ningún partido previo empieza como equipo promedio. Tampoco tiene todavía la corrección de Dixon-Coles para marcadores bajos.
 
 ## Resultado 1X2 (los 3040 partidos de prueba juntos)
 
@@ -45,7 +46,7 @@ En los partidos de prueba hubo más de 2.5 goles en el 54.8% de los casos.
 | 2020/21 | 1.0890 | 1.0506 | 1.0256 | 1.0042 |
 | 2021/22 | 1.0695 | 0.9524 | 0.9516 | 0.9360 |
 | 2022/23 | 1.0510 | 0.9841 | 1.0188 | 0.9658 |
-| 2023/24 | 1.0540 | 0.9261 | 0.9418 | 0.9093 |
+| 2023/24 | 1.0540 | 0.9261 | 0.9419 | 0.9093 |
 | 2024/25 | 1.0811 | 0.9830 | 1.0552 | 0.9706 |
 | 2025/26 | 1.0838 | 1.0415 | 1.0579 | 1.0153 |
 
@@ -73,8 +74,8 @@ Se juntan las tres probabilidades de cada partido y se agrupan en tramos de 10 p
 | Tramo | n | predicho | observado |
 |---|---|---|---|
 | 0.0 a 0.1 | 222 | 0.0758 | 0.0811 |
-| 0.1 a 0.2 | 1344 | 0.1590 | 0.1600 |
-| 0.2 a 0.3 | 3622 | 0.2492 | 0.2584 |
+| 0.1 a 0.2 | 1343 | 0.1590 | 0.1593 |
+| 0.2 a 0.3 | 3623 | 0.2492 | 0.2586 |
 | 0.3 a 0.4 | 1298 | 0.3488 | 0.3467 |
 | 0.4 a 0.5 | 1070 | 0.4475 | 0.4243 |
 | 0.5 a 0.6 | 734 | 0.5452 | 0.5300 |
