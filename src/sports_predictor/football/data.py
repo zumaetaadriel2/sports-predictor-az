@@ -23,7 +23,13 @@ ODDS_SOURCES = {
     "Max": ["Max", "BbMx"],  # máximo del mercado, antes del partido
     "AvgC": ["AvgC"],  # promedio del mercado, cierre (desde 2019/20)
 }
-ODDS_COLS = [f"{name}{o}" for name in ODDS_SOURCES for o in "HDA"]
+# Cuotas de más/menos de 2.5 goles: promedio del mercado antes del partido.
+# Mismo cambio de nombre que en 1X2: BbAv>2.5 hasta 2018/19, Avg>2.5 desde 2019/20.
+OVER_UNDER_SOURCES = {
+    "AvgOver25": ["Avg>2.5", "BbAv>2.5"],
+    "AvgUnder25": ["Avg<2.5", "BbAv<2.5"],
+}
+ODDS_COLS = [f"{name}{o}" for name in ODDS_SOURCES for o in "HDA"] + list(OVER_UNDER_SOURCES)
 
 CLEAN_COLS = ["Season", "Date", "HomeTeam", "AwayTeam"] + RESULT_COLS + STATS_COLS + ODDS_COLS
 
@@ -67,6 +73,10 @@ def load_season(path: Path) -> pd.DataFrame:
         source = next((c for c in candidates if f"{c}H" in raw.columns), None)
         for o in "HDA":
             df[f"{name}{o}"] = raw[f"{source}{o}"] if source else float("nan")
+
+    for name, candidates in OVER_UNDER_SOURCES.items():
+        source = next((c for c in candidates if c in raw.columns), None)
+        df[name] = raw[source] if source else float("nan")
 
     _validate(df, path.name)
     # Orden estable: los partidos del mismo día conservan el orden del archivo.
