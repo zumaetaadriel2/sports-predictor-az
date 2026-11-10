@@ -34,8 +34,9 @@ def elo_rating_diffs(
     - Resultado esperado del local: E = 1 / (1 + 10 ** (-diff / 400)).
     - Tras el partido: rating_local += k * (S - E) y rating_visitante -= k * (S - E),
       con S = 1 si gana el local, 0.5 si empatan, 0 si pierde.
-    - Un equipo que aparece por primera vez (ascendido) entra con el promedio de los ratings de los
-      equipos que dejaron la liga la temporada anterior. En la primera temporada todos entran con `initial`.
+    - Un equipo que no jugó la temporada anterior (ascendido, aunque ya hubiera estado antes en la
+      liga) entra con el promedio de los ratings de los equipos que dejaron la liga esa temporada;
+      su rating viejo se descarta. En la primera temporada todos entran con `initial`.
       Para saber quién juega cada temporada se usa la lista de equipos del calendario, que se conoce
       antes de que empiece; no se usa ningún resultado.
     """
