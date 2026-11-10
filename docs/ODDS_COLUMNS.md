@@ -54,7 +54,7 @@ Los significados de `BFD`, `BMGM`, `BV` y `CL` no se verificaron contra las nota
 - **Referencia de mercado para evaluar modelos: Bet365 (`B365`) y promedio del mercado (`Avg`).** Son las dos fuentes de una casa o de un promedio que cubren todos
   los partidos (el máximo `Max` también los cubre, pero no es una casa real), así que la comparación contra los modelos usa exactamente los mismos partidos. Pinnacle de cierre se guarda en el
   dataset limpio para usarla como referencia más exigente en las temporadas donde está completa.
-- **El dataset limpio conserva solo:** `B365`, `PS`, `PSC`, `Avg`, `Max` y `AvgC` (tres columnas cada una). El resto de casas
+- **El dataset limpio conserva solo:** `B365`, `PS`, `PSC`, `Avg`, `Max` y `AvgC` (tres columnas cada una), más `AvgOver25` y `AvgUnder25`. El resto de casas
   va y viene entre temporadas y no aporta a la v1.
 - **Cómo se quita el margen:** normalización proporcional. Se toma `1 / cuota` para cada resultado y se divide por la suma de los tres,
   de modo que las probabilidades sumen 1. Es el método más simple; reparte el margen en proporción a cada probabilidad.
@@ -66,6 +66,7 @@ Los significados de `BFD`, `BMGM`, `BV` y `CL` no se verificaron contra las nota
 
 Para comparar el modelo de goles se usa el promedio del mercado antes del partido, completo en las 11 temporadas (4180 partidos):
 `BbAv>2.5` / `BbAv<2.5` hasta 2018/19 y `Avg>2.5` / `Avg<2.5` desde 2019/20. El limpiador los unifica como `AvgOver25` y `AvgUnder25`.
-Las cuotas por casa (`B365>2.5`, `P>2.5`) solo existen desde 2019/20 y Pinnacle se corta en 2025/26 igual que en 1X2.
+Las cuotas por casa (`B365>2.5`, `P>2.5`) solo existen desde 2019/20, les faltan algunos partidos sueltos y Pinnacle se
+corta en 2025/26 igual que en 1X2 (210 de 380).
 
 Las cuotas de hándicap asiático (`AH*`) también están en los CSV, pero no se usan.
