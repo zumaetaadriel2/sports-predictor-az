@@ -97,6 +97,9 @@ def main() -> None:
         f"- **Elo:** K = {ELO_K:g}, ventaja de local = {ELO_HOME_ADVANTAGE:g} puntos. Valores fijos, sin ajustar.",
         "- **Mercado:** probabilidades implícitas de las cuotas con el margen removido (normalización proporcional).",
         "- En las tres métricas, menos es mejor.",
+        "- **Limitaciones:** todos los equipos empiezan con el mismo Elo en la primera temporada, así que los primeros "
+        "partidos de entrenamiento aportan diferencias poco informativas. La curva de calibración que pide la "
+        "especificación todavía no está hecha.",
         "",
         f"## Global (los {len(y)} partidos de prueba juntos)",
         "",
