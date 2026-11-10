@@ -83,3 +83,17 @@ def test_elo_probabilities_are_valid_and_monotonic():
     assert probs.sum(axis=1) == pytest.approx(np.ones(3))
     assert probs[0, 0] < probs[1, 0] < probs[2, 0]  # más Elo a favor -> más probabilidad de local
     assert probs[0, 2] > probs[1, 2] > probs[2, 2]
+
+
+def test_select_elo_params_picks_lowest_validation_loss():
+    from sports_predictor.football.baselines import select_elo_params
+
+    rng = np.random.default_rng(1)
+    informative = rng.normal(0, 200, size=3000)
+    p_home = 1 / (1 + 10 ** (-informative / 400))
+    outcomes = np.where(rng.random(3000) < p_home, 0, 2)
+    outcomes[rng.random(3000) < 0.2] = 1
+    noise = rng.normal(0, 200, size=3000)  # sin relación con el resultado
+    fit = np.arange(3000) < 2000
+    best = select_elo_params({"ruido": noise, "informativo": informative}, outcomes, [(fit, ~fit)])
+    assert best == "informativo"

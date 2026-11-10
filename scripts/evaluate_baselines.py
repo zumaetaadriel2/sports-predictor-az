@@ -30,6 +30,7 @@ from sports_predictor.football.baselines import (  # noqa: E402
     elo_rating_diffs,
     frequency_probabilities,
     outcome_index,
+    select_elo_params,
 )
 from sports_predictor.football.data import load_matches  # noqa: E402
 from sports_predictor.metrics import brier_score, log_loss, rps  # noqa: E402
@@ -39,7 +40,10 @@ from sports_predictor.validation import expanding_season_splits  # noqa: E402
 MIN_TRAIN_SEASONS = 3
 ELO_K = 20.0
 ELO_HOME_ADVANTAGE = 60.0
-MODELS = ["Frecuencias históricas", "Elo con ventaja de local", "Mercado: promedio", "Mercado: Bet365"]
+# Valores que se prueban al ajustar el Elo. La combinación se elige en cada ventana usando solo entrenamiento.
+ELO_K_GRID = [10.0, 15.0, 20.0, 25.0, 30.0, 40.0]
+ELO_HOME_ADVANTAGE_GRID = [0.0, 30.0, 60.0, 90.0, 120.0]
+MODELS = ["Frecuencias históricas", "Elo fijo", "Elo ajustado", "Mercado: promedio", "Mercado: Bet365"]
 
 
 def main() -> None:
@@ -47,19 +51,38 @@ def main() -> None:
     outcomes = outcome_index(matches["FTR"])
     # El Elo se calcula una sola vez sobre toda la historia: el valor de cada partido solo usa partidos anteriores.
     diffs = elo_rating_diffs(matches, k=ELO_K, home_advantage=ELO_HOME_ADVANTAGE)
+    diffs_by_params = {
+        (k, h): elo_rating_diffs(matches, k=k, home_advantage=h)
+        for k in ELO_K_GRID
+        for h in ELO_HOME_ADVANTAGE_GRID
+    }
     seasons = list(matches["Season"].unique())  # ya vienen en orden cronológico
 
     rows, pooled = [], {m: [] for m in MODELS}
     pooled_outcomes = []
+    chosen = []
     for train_seasons, test_season in expanding_season_splits(seasons, MIN_TRAIN_SEASONS):
         train = (matches["Season"].isin(train_seasons)).to_numpy()
         test = (matches["Season"] == test_season).to_numpy()
         assert matches.loc[train, "Date"].max() < matches.loc[test, "Date"].min()  # el pasado va antes del futuro
 
+        # Ajuste del Elo: se repite la ventana expansiva DENTRO del entrenamiento (ajustar con las
+        # primeras temporadas, validar en la siguiente) y se promedia. La temporada de prueba no interviene.
+        inner = list(expanding_season_splits(train_seasons, min_train_seasons=1))
+        folds = [
+            ((matches["Season"].isin(fit_seasons)).to_numpy(), (matches["Season"] == val_season).to_numpy())
+            for fit_seasons, val_season in inner
+        ]
+        best = select_elo_params(diffs_by_params, outcomes, folds)
+        tuned = diffs_by_params[best]
+        chosen.append({"Temporada de prueba": test_season, "Temporadas de validación": len(folds),
+                       "K": f"{best[0]:g}", "Ventaja de local": f"{best[1]:g}"})
+
         test_matches = matches[test]
         probs = {
             "Frecuencias históricas": frequency_probabilities(matches[train], int(test.sum())),
-            "Elo con ventaja de local": elo_probabilities(diffs[train], outcomes[train], diffs[test]),
+            "Elo fijo": elo_probabilities(diffs[train], outcomes[train], diffs[test]),
+            "Elo ajustado": elo_probabilities(tuned[train], outcomes[train], tuned[test]),
             "Mercado: promedio": implied_probabilities(test_matches[["AvgH", "AvgD", "AvgA"]]),
             "Mercado: Bet365": implied_probabilities(test_matches[["B365H", "B365D", "B365A"]]),
         }
@@ -101,7 +124,11 @@ def main() -> None:
         f"- **División temporal (ventana expansiva):** se entrena con todas las temporadas hasta N y se prueba en la N+1. "
         f"La primera prueba usa {MIN_TRAIN_SEASONS} temporadas de entrenamiento.",
         f"- **Temporadas de prueba:** {test_seasons[0]} a {test_seasons[-1]} ({len(test_seasons)} temporadas, {len(y)} partidos).",
-        f"- **Elo:** K = {ELO_K:g}, ventaja de local = {ELO_HOME_ADVANTAGE:g} puntos. Valores fijos, sin ajustar.",
+        f"- **Elo fijo:** K = {ELO_K:g}, ventaja de local = {ELO_HOME_ADVANTAGE:g} puntos, sin ajustar.",
+        f"- **Elo ajustado:** en cada ventana se prueban {len(diffs_by_params)} combinaciones "
+        f"(K en {[int(k) for k in ELO_K_GRID]}, ventaja de local en {[int(h) for h in ELO_HOME_ADVANTAGE_GRID]}) y se elige "
+        "la de menor log loss promedio al repetir la ventana expansiva dentro del entrenamiento "
+        "(ajustar con las primeras temporadas, validar en la siguiente). La temporada de prueba no interviene en la elección.",
         "- **Mercado:** probabilidades implícitas de las cuotas con el margen removido (normalización proporcional).",
         "- En las tres métricas, menos es mejor.",
         "- **Limitaciones:** todos los equipos empiezan con el mismo Elo en la primera temporada, así que los primeros "
@@ -110,6 +137,10 @@ def main() -> None:
         f"## Global (los {len(y)} partidos de prueba juntos)",
         "",
         _markdown_table(overall),
+        "",
+        "## Parámetros del Elo elegidos en cada ventana",
+        "",
+        _markdown_table(pd.DataFrame(chosen)),
         "",
     ]
     for metric, title in [("log_loss", "Log loss"), ("brier", "Brier"), ("rps", "RPS")]:
