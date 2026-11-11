@@ -37,7 +37,7 @@ from sports_predictor.football.baselines import (  # noqa: E402
     frequency_probabilities,
     outcome_index,
 )
-from sports_predictor.football.data import load_matches  # noqa: E402
+from sports_predictor.football.data import LAST_DEV_SEASON, load_matches  # noqa: E402
 from sports_predictor.football.features import FEATURE_COLS, form_features  # noqa: E402
 from sports_predictor.football.poisson import (  # noqa: E402
     outcome_probabilities,
@@ -64,12 +64,12 @@ LGBM_PARAMS = dict(
 )
 GBM_FEATURES = ["elo_diff", "expected_goals_home", "expected_goals_away"] + FEATURE_COLS
 
-FREQ, ELO, POISSON, DC, DCW, GBM, MARKET = (
-    "Frecuencias históricas", "Elo fijo", "Poisson", "Dixon-Coles", "Dixon-Coles + antigüedad", "LightGBM",
-    "Mercado: promedio",
+FREQ, ELO, POISSON, DC, PW, DCW, GBM, MARKET = (
+    "Frecuencias históricas", "Elo fijo", "Poisson", "Dixon-Coles", "Poisson + antigüedad",
+    "Dixon-Coles + antigüedad", "LightGBM", "Mercado: promedio",
 )
-MODELS_1X2 = [FREQ, ELO, POISSON, DC, DCW, GBM, MARKET]
-MODELS_OU = ["Frecuencia histórica", POISSON, DC, DCW, MARKET]
+MODELS_1X2 = [FREQ, ELO, POISSON, DC, PW, DCW, GBM, MARKET]
+MODELS_OU = ["Frecuencia histórica", POISSON, DC, PW, DCW, MARKET]
 
 
 def main() -> None:
@@ -81,6 +81,8 @@ def main() -> None:
     seasons = list(matches["Season"].unique())  # ya vienen en orden cronológico
     splits = list(expanding_season_splits(seasons, MIN_TRAIN_SEASONS))
     if args.final_test:
+        if seasons[-1] <= LAST_DEV_SEASON:
+            sys.exit("No hay temporada reservada en data/raw/. Corre: python scripts/download_data.py --include-current")
         splits = splits[-1:]  # solo la última ventana: entrenar con todo lo anterior, probar en la reservada
 
     outcomes = outcome_index(matches["FTR"])
@@ -116,7 +118,8 @@ def main() -> None:
             rate_home, rate_away, rho = goals[half_life]
             return score_matrices(rate_home[test], rate_away[test], rho[test] if dixon_coles else None)
 
-        m_poisson, m_dc, m_dcw = matrices(None, False), matrices(None, True), matrices(best, True)
+        m_poisson, m_dc = matrices(None, False), matrices(None, True)
+        m_pw, m_dcw = matrices(best, False), matrices(best, True)
 
         # LightGBM: Elo, goles esperados del modelo de goles elegido y forma reciente. Todo es previo al partido.
         features = form.assign(
@@ -134,6 +137,7 @@ def main() -> None:
                 ELO: elo_probabilities(elo_diffs[train], outcomes[train], elo_diffs[test]),
                 POISSON: outcome_probabilities(m_poisson),
                 DC: outcome_probabilities(m_dc),
+                PW: outcome_probabilities(m_pw),
                 DCW: outcome_probabilities(m_dcw),
                 GBM: gbm.predict_proba(features[test]),
                 MARKET: implied_probabilities(test_matches[["AvgH", "AvgD", "AvgA"]]),
@@ -143,6 +147,7 @@ def main() -> None:
                 "Frecuencia histórica": np.tile([1 - freq_over, freq_over], (n_test, 1)),
                 POISSON: _two_columns(over_probability(m_poisson)),
                 DC: _two_columns(over_probability(m_dc)),
+                PW: _two_columns(over_probability(m_pw)),
                 DCW: _two_columns(over_probability(m_dcw)),
                 MARKET: implied_probabilities(test_matches[["AvgUnder25", "AvgOver25"]]),
             },

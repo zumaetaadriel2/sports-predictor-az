@@ -43,6 +43,8 @@ def form_features(matches: pd.DataFrame) -> pd.DataFrame:
         table["side"] = side
     # Una fila por equipo y partido. Orden estable por fecha: ningún equipo juega dos veces el mismo día.
     long = pd.concat(sides.values(), ignore_index=True).sort_values("date", kind="stable")
+    if long.duplicated(["team", "date"]).any():
+        raise ValueError("Un equipo juega dos veces el mismo día: la forma podría usar un partido de esa misma fecha")
 
     def previous_mean(group_keys, column):
         return long.groupby(group_keys)[column].transform(
