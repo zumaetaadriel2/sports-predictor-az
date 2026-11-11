@@ -7,9 +7,9 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ## [Unreleased]
 
 ### Added
-- Predicción de los próximos partidos con el modelo Dixon-Coles + antigüedad e historial de predicciones publicadas (`site_data/predictions.csv`), que nunca se reescribe.
+- Predicción de los próximos partidos con el modelo Dixon-Coles + antigüedad e historial de predicciones publicadas, que nunca se reescribe.
 - Sitio estático de demostración (`scripts/build_site.py`): próxima jornada, rendimiento en la temporada en curso, resultados históricos, fuerza de los equipos y metodología.
-- Flujos de GitHub Actions: pruebas en cada PR y publicación automática del sitio en GitHub Pages los martes y los viernes.
+- Flujos de GitHub Actions: pruebas en cada PR y publicación automática del sitio en GitHub Pages tres veces por semana, con el historial de predicciones en la rama `site-data`.
 - Descarga del archivo de próximos partidos (`scripts/download_data.py --fixtures`).
 
 ### Changed

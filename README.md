@@ -8,7 +8,7 @@ Modelo de análisis y predicción deportiva, empezando por la Premier League. Pr
 
 Predicciones de los próximos partidos y resultados del modelo: https://zumaetaadriel2.github.io/sports-predictor-az/
 
-La página se regenera sola con GitHub Actions los martes y los viernes. Para generarla en local:
+La página se regenera sola con GitHub Actions los martes, los viernes y los sábados por la mañana. El historial de predicciones publicadas vive en la rama `site-data`. Para generarla en local:
 ```powershell
 python scripts/download_data.py --include-current --fixtures
 python scripts/predict_next.py    # añade predicciones a site_data/predictions.csv

@@ -19,7 +19,7 @@
 {% block content %}
 <section class="hero">
   <h1>Predicciones de la Premier League</h1>
-  <p>Probabilidades de local, empate y visitante calculadas con un modelo de goles, y comparadas con las que implican las cuotas del mercado. Se actualiza cada semana.</p>
+  <p>Probabilidades de local, empate y visitante calculadas con un modelo de goles, y comparadas con las que implican las cuotas del mercado. Se actualiza dos veces por semana.</p>
   <p class="meta">Temporada {{ season }} · actualizado el {{ updated }}</p>
 </section>
 
@@ -42,7 +42,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <p class="notice">Todavía no hay partidos publicados para la próxima jornada. Aparecerán aquí en la siguiente actualización semanal.</p>
+  <p class="notice">Todavía no hay partidos publicados para la próxima jornada. Aparecerán aquí en la siguiente actualización automática.</p>
   {% endif %}
 </section>
 
@@ -76,7 +76,7 @@
     </table>
   </div>
   {% else %}
-  <p class="notice">El registro empieza con la primera actualización automática. Cada predicción se guarda antes de que se juegue el partido y no se modifica después.</p>
+  <p class="notice">El registro empieza con la primera actualización automática. Cada predicción se guarda con su fecha de publicación, antes del partido, y no se modifica después.</p>
   {% endif %}
 </section>
 
