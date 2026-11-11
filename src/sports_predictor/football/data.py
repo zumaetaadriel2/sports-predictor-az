@@ -97,10 +97,20 @@ def _validate(df: pd.DataFrame, name: str) -> None:
         raise ValueError(f"{name}: hay cuotas menores o iguales a 1")
 
 
-def load_matches(raw_dir: Path, league: str = "E0") -> pd.DataFrame:
-    """Carga todas las temporadas de una liga, en orden cronológico."""
+# Última temporada de desarrollo. Las posteriores están reservadas para la prueba final.
+LAST_DEV_SEASON = "2025/26"
+
+
+def load_matches(raw_dir: Path, league: str = "E0", include_holdout: bool = False) -> pd.DataFrame:
+    """Carga todas las temporadas de una liga, en orden cronológico.
+
+    Por defecto deja fuera las temporadas posteriores a LAST_DEV_SEASON aunque su CSV exista: están
+    reservadas para la prueba final y ninguna evaluación de desarrollo debe verlas.
+    """
     files = sorted(Path(raw_dir).glob(f"{league}_*.csv"))
     if not files:
         raise FileNotFoundError(f"No hay CSV {league}_*.csv en {raw_dir}. Corre scripts/download_data.py")
+    if not include_holdout:
+        files = [f for f in files if season_label(f) <= LAST_DEV_SEASON]
     df = pd.concat([load_season(f) for f in files], ignore_index=True)
     return df.sort_values("Date", kind="stable").reset_index(drop=True)

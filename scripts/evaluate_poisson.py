@@ -66,7 +66,7 @@ def main() -> None:
 
     # Poisson: una sola pasada. La predicción de cada fecha solo usa partidos de fechas anteriores.
     first_test = int((matches["Season"] == splits[0][1]).to_numpy().argmax())
-    rate_home, rate_away = walk_forward_expected_goals(matches, first_test, penalty=POISSON_PENALTY)
+    rate_home, rate_away, _ = walk_forward_expected_goals(matches, first_test, penalty=POISSON_PENALTY)
 
     rows = []
     pooled = {"1X2": {m: [] for m in MODELS_1X2}, "OU": {m: [] for m in MODELS_OU}}
