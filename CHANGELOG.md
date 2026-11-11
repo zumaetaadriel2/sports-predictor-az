@@ -4,6 +4,17 @@ Todos los cambios relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [Unreleased]
+
+### Added
+- Predicción de los próximos partidos con el modelo Dixon-Coles + antigüedad e historial de predicciones publicadas, que nunca se reescribe.
+- Sitio estático de demostración (`scripts/build_site.py`): próxima jornada, rendimiento en la temporada en curso, resultados históricos, fuerza de los equipos y metodología.
+- Flujos de GitHub Actions: pruebas en cada PR y publicación automática del sitio en GitHub Pages tres veces por semana, con el historial de predicciones en la rama `site-data`.
+- Descarga del archivo de próximos partidos (`scripts/download_data.py --fixtures`).
+
+### Changed
+- `scripts/download_data.py --include-current` vuelve a bajar siempre la temporada en curso.
+
 ## [0.1.0] - 2026-11-11
 
 Primera versión: predicción del resultado 1X2 y de los goles de la Premier League, comparada contra el mercado.

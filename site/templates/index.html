@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Sports Predictor · Premier League{% endblock %}
+
+{% macro bar(values, label) %}
+<div class="bar-row">
+  <span class="bar-label">{{ label }}</span>
+  {% if values %}
+  <div class="bar" role="img" aria-label="{{ label }}: local {{ values[0] }} %, empate {{ values[1] }} %, visitante {{ values[2] }} %">
+    <span class="seg home" style="width: {{ values[0] }}%">{% if values[0] >= 12 %}{{ values[0] }}%{% endif %}</span>
+    <span class="seg draw" style="width: {{ values[1] }}%">{% if values[1] >= 12 %}{{ values[1] }}%{% endif %}</span>
+    <span class="seg away" style="width: {{ values[2] }}%">{% if values[2] >= 12 %}{{ values[2] }}%{% endif %}</span>
+  </div>
+  {% else %}
+  <div class="bar empty">sin cuotas</div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<section class="hero">
+  <h1>Predicciones de la Premier League</h1>
+  <p>Probabilidades de local, empate y visitante calculadas con un modelo de goles, y comparadas con las que implican las cuotas del mercado. Se actualiza dos veces por semana.</p>
+  <p class="meta">Temporada {{ season }} · actualizado el {{ updated }}</p>
+</section>
+
+<section>
+  <h2>Próxima jornada</h2>
+  {% if upcoming %}
+  <p class="legend"><span class="dot home"></span>Local <span class="dot draw"></span>Empate <span class="dot away"></span>Visitante</p>
+  <div class="cards">
+    {% for m in upcoming %}
+    <article class="card">
+      <p class="card-date">{{ m.date }}</p>
+      <h3>{{ m.home }} <span class="vs">vs</span> {{ m.away }}</h3>
+      {{ bar(m.model, "Modelo") }}
+      {{ bar(m.market, "Mercado") }}
+      <dl class="facts">
+        <div><dt>Goles esperados</dt><dd>{{ m.goals_home }} – {{ m.goals_away }}</dd></div>
+        <div><dt>Más de 2.5 goles</dt><dd>{{ m.over }}{% if m.market_over %} <span class="muted">(mercado {{ m.market_over }})</span>{% endif %}</dd></div>
+      </dl>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="notice">Todavía no hay partidos publicados para la próxima jornada. Aparecerán aquí en la siguiente actualización automática.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Cómo le va al modelo esta temporada</h2>
+  {% if backtest %}
+  <div class="stats">
+    <div class="stat"><span class="stat-value">{{ backtest.model }}</span><span class="stat-label">Log loss del modelo</span></div>
+    <div class="stat"><span class="stat-value">{{ backtest.market }}</span><span class="stat-label">Log loss del mercado</span></div>
+    <div class="stat"><span class="stat-value">{{ backtest.n }}</span><span class="stat-label">Partidos jugados</span></div>
+  </div>
+  <img class="chart" src="{{ backtest.chart }}" alt="Log loss acumulado del modelo y del mercado en la temporada {{ season }}">
+  <p class="muted">El log loss mide el error de las probabilidades; menos es mejor. Estas cifras se recalculan partido a partido usando solo los partidos anteriores a cada fecha: son una reconstrucción, no un registro de lo publicado.</p>
+  {% else %}
+  <p class="notice">Aún no hay partidos con cuotas en esta temporada.</p>
+  {% endif %}
+
+  <h3>Predicciones publicadas antes de los partidos</h3>
+  {% if settled %}
+  {% if settled_summary %}
+  <p>En {{ settled_summary.n }} partidos con predicción publicada, el log loss del modelo es {{ settled_summary.model }} y el del mercado {{ settled_summary.market }}.</p>
+  {% endif %}
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Fecha</th><th>Partido</th><th>Local / empate / visitante</th><th>Resultado</th><th>Probabilidad dada al resultado</th></tr></thead>
+      <tbody>
+        {% for m in settled %}
+        <tr><td>{{ m.date }}</td><td>{{ m.home }} – {{ m.away }}</td><td>{{ m.model[0] }} % / {{ m.model[1] }} % / {{ m.model[2] }} %</td><td>{{ m.score }} ({{ m.result }})</td><td>{{ m.p_result }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="notice">El registro empieza con la primera actualización automática. Cada predicción se guarda con su fecha de publicación, antes del partido, y no se modifica después.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Resultados históricos</h2>
+  <p>Resultado 1X2 en 3040 partidos de prueba (temporadas 2018/19 a 2025/26). Cada temporada se predice con un modelo entrenado solo con las anteriores. En las tres métricas, menos es mejor.</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Modelo</th><th>Log loss</th><th>Brier</th><th>RPS</th></tr></thead>
+      <tbody>
+        {% for m in models %}
+        <tr class="{% if m.highlight %}highlight{% endif %}{% if m.market %} market{% endif %}"><td>{{ m.name }}{% if m.highlight %} <span class="tag">en uso</span>{% endif %}</td><td>{{ m.log_loss }}</td><td>{{ m.brier }}</td><td>{{ m.rps }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">El modelo en uso supera al baseline ingenuo y al Elo por un margen pequeño, y queda por debajo del mercado.</p>
+  <img class="chart narrow" src="model_calibration.png" alt="Curva de calibración: probabilidad predicha contra frecuencia observada">
+</section>
+
+<section>
+  <h2>Fuerza de los equipos</h2>
+  <p>Goles que el modelo espera a favor y en contra de cada equipo contra un rival promedio, en campo neutral.</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>#</th><th>Equipo</th><th>A favor</th><th>En contra</th><th>Diferencia</th></tr></thead>
+      <tbody>
+        {% for t in strengths %}
+        <tr><td>{{ t.rank }}</td><td>{{ t.team }}</td><td>{{ t.goals_for }}</td><td>{{ t.goals_against }}</td><td>{{ t.difference }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

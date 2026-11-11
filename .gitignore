@@ -22,3 +22,6 @@ data/processed/*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Sitio generado (se publica desde GitHub Actions)
+_site/
