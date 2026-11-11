@@ -5,6 +5,7 @@ import pytest
 from sports_predictor.football.poisson import (
     expected_goals,
     fit_poisson,
+    fit_rho,
     outcome_probabilities,
     over_probability,
     score_matrices,
@@ -82,14 +83,16 @@ def make_matches():
 def test_walk_forward_has_no_leakage():
     matches = make_matches()
     first = 8
-    rate_h, rate_a = walk_forward_expected_goals(matches, first)
+    rate_h, rate_a, rho = walk_forward_expected_goals(matches, first)
+    assert not np.isnan(rho[first:]).any()
     assert np.isnan(rate_h[:first]).all()
     assert not np.isnan(rate_h[first:]).any()
 
     changed = matches.copy()
     cut = 16  # primer partido de una fecha
     changed.loc[cut:, ["FTHG", "FTAG"]] = 9
-    new_h, new_a = walk_forward_expected_goals(changed, first)
+    new_h, new_a, _ = walk_forward_expected_goals(changed, first, half_life_days=30)
+    rate_h, rate_a, _ = walk_forward_expected_goals(matches, first, half_life_days=30)
     # Las predicciones hasta la fecha del cambio (inclusive) no pueden cambiar.
     assert new_h[first:cut + 2] == pytest.approx(rate_h[first:cut + 2])
     assert new_a[first:cut + 2] == pytest.approx(rate_a[first:cut + 2])
@@ -98,7 +101,7 @@ def test_walk_forward_has_no_leakage():
 
 def test_walk_forward_matches_direct_fit():
     matches = make_matches()
-    rate_h, _ = walk_forward_expected_goals(matches, 8, penalty=5.0)
+    rate_h, _, _ = walk_forward_expected_goals(matches, 8, penalty=5.0)
     teams = sorted(set(matches["HomeTeam"]) | set(matches["AwayTeam"]))
     idx = {t: i for i, t in enumerate(teams)}
     past = matches.iloc[:22]  # todo lo anterior a la última fecha
@@ -106,3 +109,43 @@ def test_walk_forward_matches_direct_fit():
     last = matches.iloc[22:]
     direct_h, _ = expected_goals(params, last["HomeTeam"].map(idx), last["AwayTeam"].map(idx), 4)
     assert rate_h[22:] == pytest.approx(direct_h, rel=1e-5)
+
+
+def test_weights_equal_to_repeating_matches():
+    home, away, hg, ag, *_ = simulate(rounds=2)
+    weights = np.where(np.arange(len(home)) % 2 == 0, 2.0, 1.0)
+    twice = weights == 2.0
+    repeated = [np.concatenate([x, x[twice]]) for x in (home, away, hg, ag)]
+    weighted = fit_poisson(home, away, hg, ag, n_teams=6, weights=weights)
+    assert weighted == pytest.approx(fit_poisson(*repeated, n_teams=6), abs=1e-4)
+
+
+def test_half_life_downweights_old_matches():
+    matches = make_matches()
+    plain, _, _ = walk_forward_expected_goals(matches, 8)
+    weighted, _, _ = walk_forward_expected_goals(matches, 8, half_life_days=14)
+    assert not weighted[8:] == pytest.approx(plain[8:])
+
+
+def test_dixon_coles_matrix_by_hand():
+    lam, mu, rho = 1.4, 1.1, -0.1
+    plain = score_matrices([lam], [mu])[0]
+    dc = score_matrices([lam], [mu], rho=[rho])[0]
+    assert dc.sum() == pytest.approx(1.0)
+    # La corrección mueve probabilidad entre los cuatro marcadores bajos y casi no cambia el total.
+    assert dc[0, 0] / plain[0, 0] == pytest.approx(1 - lam * mu * rho, rel=1e-3)
+    assert dc[1, 1] / plain[1, 1] == pytest.approx(1 - rho, rel=1e-3)
+    assert dc[0, 1] / plain[0, 1] == pytest.approx(1 + lam * rho, rel=1e-3)
+    assert dc[3, 2] == pytest.approx(plain[3, 2], rel=1e-3)
+    # rho negativo: más empates que el Poisson independiente.
+    assert outcome_probabilities(dc[None])[0, 1] > outcome_probabilities(plain[None])[0, 1]
+
+
+def test_fit_rho_recovers_known_value():
+    rng = np.random.default_rng(5)
+    lam, mu, rho = 1.4, 1.1, -0.12
+    matrix = score_matrices([lam], [mu], rho=[rho])[0]
+    draws = rng.choice(matrix.size, size=40000, p=matrix.ravel())
+    hg, ag = np.unravel_index(draws, matrix.shape)
+    estimate = fit_rho(np.full(40000, lam), np.full(40000, mu), hg, ag)
+    assert estimate == pytest.approx(rho, abs=0.03)
