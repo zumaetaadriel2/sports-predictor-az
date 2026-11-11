@@ -4,6 +4,17 @@ Modelo de análisis y predicción deportiva, empezando por la Premier League. Pr
 
 > Estado: versión v0.1.0 (v1 de la especificación completa). Cambios en `CHANGELOG.md`. Informe en `reports/final_report.md` y prueba final en `reports/final_test.md`.
 
+## Demo
+
+Predicciones de los próximos partidos y resultados del modelo: https://zumaetaadriel2.github.io/sports-predictor-az/
+
+La página se regenera sola con GitHub Actions los martes y los viernes. Para generarla en local:
+```powershell
+python scripts/download_data.py --include-current --fixtures
+python scripts/predict_next.py    # añade predicciones a site_data/predictions.csv
+python scripts/build_site.py      # escribe el sitio en _site/
+```
+
 ## Resultados
 
 Resultado 1X2 en 3040 partidos de prueba (temporadas 2018/19 a 2025/26, ventana expansiva). Menos es mejor.
