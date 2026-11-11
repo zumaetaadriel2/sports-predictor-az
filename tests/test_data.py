@@ -77,3 +77,10 @@ def test_over_under_odds_are_unified(raw_dir):
     assert list(old["AvgOver25"]) == [1.8, 1.9]  # venía como BbAv>2.5
     assert list(old["AvgUnder25"]) == [2.05, 1.95]
     assert new["AvgOver25"].iloc[0] == 1.7
+
+
+def test_holdout_season_is_excluded_by_default(raw_dir):
+    later = NEW.replace("09/08/2019", "15/08/2026")
+    (raw_dir / "E0_2627.csv").write_text(later, encoding="utf-8")
+    assert len(load_matches(raw_dir)) == 3
+    assert len(load_matches(raw_dir, include_holdout=True)) == 4
