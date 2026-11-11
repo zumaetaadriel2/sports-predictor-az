@@ -1,0 +1,60 @@
+name: Update site
+
+# Baja los datos nuevos, predice los próximos partidos, guarda el historial y publica el sitio.
+# football-data.co.uk publica los próximos partidos los martes y los viernes, así que se corre
+# esos dos días. También se puede lanzar a mano desde la pestaña Actions.
+on:
+  schedule:
+    - cron: "0 15 * * 2,5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: pytest
+      - name: Download data
+        run: python scripts/download_data.py --include-current --fixtures
+      - name: Predict next matches
+        run: python scripts/predict_next.py
+      - name: Build site
+        run: python scripts/build_site.py
+      - name: Commit published predictions
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site_data/predictions.csv
+          if git diff --cached --quiet; then
+            echo "Sin predicciones nuevas."
+          else
+            git commit -m "chore(data): update published predictions"
+            git push
+          fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
