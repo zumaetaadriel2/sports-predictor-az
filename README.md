@@ -2,7 +2,7 @@
 
 Modelo de análisis y predicción deportiva, empezando por la Premier League. Probabilidades calibradas para resultado 1X2 y goles, comparadas contra el mercado de cuotas.
 
-> Estado: v1 completa. Informe en `reports/final_report.md` y prueba final en `reports/final_test.md`.
+> Estado: versión v0.1.0 (v1 de la especificación completa). Cambios en `CHANGELOG.md`. Informe en `reports/final_report.md` y prueba final en `reports/final_test.md`.
 
 ## Resultados
 
