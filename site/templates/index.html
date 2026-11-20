@@ -19,7 +19,7 @@
 {% block content %}
 <section class="hero">
   <h1>Predicciones de la Premier League</h1>
-  <p>Probabilidades de local, empate y visitante calculadas con un modelo de goles, y comparadas con las que implican las cuotas del mercado. Se actualiza dos veces por semana.</p>
+  <p>Probabilidades de local, empate y visitante calculadas con un modelo de goles, y comparadas con las que implican las cuotas del mercado. Se actualiza automáticamente tres veces por semana.</p>
   <p class="meta">Temporada {{ season }} · actualizado el {{ updated }}</p>
 </section>
 
@@ -42,7 +42,21 @@
     {% endfor %}
   </div>
   {% else %}
-  <p class="notice">Todavía no hay partidos publicados para la próxima jornada. Aparecerán aquí en la siguiente actualización automática.</p>
+  <p class="notice">No hay partidos próximos en la fuente de datos (puede deberse a un parón de selecciones o al receso de verano). Aparecerán aquí en la siguiente actualización automática.</p>
+  {% if recent %}
+  <h3>Mientras tanto: los últimos {{ recent|length }} partidos jugados</h3>
+  <p class="muted">Así habría predicho el modelo cada partido. Es una reconstrucción: se calcula ahora, pero cada predicción solo usa partidos anteriores a su fecha. No es un registro publicado antes del partido. Las probabilidades van en el orden local / empate / visitante; la última columna es la que el modelo dio al resultado que ocurrió.</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Fecha</th><th>Partido</th><th>Modelo</th><th>Mercado</th><th>Resultado</th><th>Prob. del modelo</th></tr></thead>
+      <tbody>
+        {% for m in recent %}
+        <tr><td>{{ m.date }}</td><td>{{ m.home }} – {{ m.away }}</td><td>{{ m.model[0] }} % / {{ m.model[1] }} % / {{ m.model[2] }} %</td><td>{% if m.market %}{{ m.market[0] }} % / {{ m.market[1] }} % / {{ m.market[2] }} %{% else %}sin cuotas{% endif %}</td><td>{{ m.score }} ({{ m.result }})</td><td>{{ m.p_result }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
   {% endif %}
 </section>
 

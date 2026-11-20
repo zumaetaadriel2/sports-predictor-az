@@ -29,6 +29,7 @@ from sports_predictor.football.baselines import outcome_index  # noqa: E402
 from sports_predictor.football.data import load_matches  # noqa: E402
 from sports_predictor.football.poisson import (  # noqa: E402
     outcome_probabilities,
+    over_probability,
     score_matrices,
     walk_forward_expected_goals,
 )
@@ -45,6 +46,7 @@ from sports_predictor.odds import implied_probabilities  # noqa: E402
 
 OUT = ROOT / "_site"
 REPO_URL = "https://github.com/zumaetaadriel2/sports-predictor-az"
+RECENT_MATCHES = 10  # partidos que se muestran cuando no hay próximos partidos
 OUTCOME_NAMES = {"H": "Local", "D": "Empate", "A": "Visitante"}
 MODEL_COLS = ["p_home", "p_draw", "p_away"]
 MARKET_COLS = ["market_home", "market_draw", "market_away"]
@@ -68,6 +70,7 @@ def main() -> None:
     upcoming = merged[merged["FTR"].isna() & (merged["Date"] >= as_of)].sort_values("Date")
     settled = merged[merged["FTR"].notna()].sort_values("Date", ascending=False)
 
+    backtest = _season_backtest(matches, season, OUT / "season_log_loss.png")
     context = {
         "version": __version__,
         "updated": _date(as_of),
@@ -76,7 +79,8 @@ def main() -> None:
         "upcoming": [_card(row) for row in upcoming.itertuples(index=False)],
         "settled": [_settled_row(row) for row in settled.head(20).itertuples(index=False)],
         "settled_summary": _settled_summary(settled),
-        "backtest": _season_backtest(matches, season, OUT / "season_log_loss.png"),
+        "backtest": backtest,
+        "recent": backtest["recent"] if backtest else [],
         "strengths": _strengths(matches, season, as_of),
         "models": _historical_models(),
         "half_life": int(HALF_LIFE_DAYS),
@@ -149,8 +153,20 @@ def _season_backtest(matches: pd.DataFrame, season: str, chart: Path):
     first = int((matches["Season"] == season).to_numpy().argmax())
     rate_home, rate_away, rho = walk_forward_expected_goals(matches, first, PENALTY, HALF_LIFE_DAYS)
     current = matches.iloc[first:]
-    model = outcome_probabilities(score_matrices(rate_home[first:], rate_away[first:], rho[first:]))
+    matrices = score_matrices(rate_home[first:], rate_away[first:], rho[first:])
+    model = outcome_probabilities(matrices)
     market = implied_probabilities(current[["AvgH", "AvgD", "AvgA"]])
+
+    # Últimos partidos jugados, para mostrarlos cuando la fuente no trae próximos partidos.
+    last = slice(-RECENT_MATCHES, None)
+    recent = current.tail(RECENT_MATCHES)[MATCH_KEY + ["FTHG", "FTAG", "FTR"]].copy()
+    recent["exp_goals_home"], recent["exp_goals_away"] = rate_home[first:][last], rate_away[first:][last]
+    recent[MODEL_COLS] = model[last]
+    recent["p_over25"] = over_probability(matrices)[last]
+    recent[MARKET_COLS] = market[last]
+    recent["market_over25"] = implied_probabilities(current[["AvgUnder25", "AvgOver25"]])[:, 1][last]
+    recent_rows = [_settled_row(row) for row in recent.itertuples(index=False)]
+
     keep = ~np.isnan(market).any(axis=1)
     if not keep.any():
         return None
@@ -172,6 +188,7 @@ def _season_backtest(matches: pd.DataFrame, season: str, chart: Path):
     return {
         "n": len(outcomes), "chart": chart.name,
         "model": f"{log_loss(model, outcomes):.4f}", "market": f"{log_loss(market, outcomes):.4f}",
+        "recent": recent_rows,
     }
 
 

@@ -11,6 +11,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Sitio estático de demostración (`scripts/build_site.py`): próxima jornada, rendimiento en la temporada en curso, resultados históricos, fuerza de los equipos y metodología.
 - Flujos de GitHub Actions: pruebas en cada PR y publicación automática del sitio en GitHub Pages tres veces por semana, con el historial de predicciones en la rama `site-data`.
 - Descarga del archivo de próximos partidos (`scripts/download_data.py --fixtures`).
+- Cuando la fuente no trae próximos partidos (parones, receso de verano), el sitio muestra los últimos 10 partidos con la predicción reconstruida del modelo y del mercado.
 
 ### Changed
 - `scripts/download_data.py --include-current` vuelve a bajar siempre la temporada en curso.
