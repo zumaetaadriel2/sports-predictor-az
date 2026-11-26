@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Metodología · Sports Predictor{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Metodología</h1>
+  <p>Qué hace el modelo, cómo se mide y cuáles son sus límites.</p>
+</section>
+
+<section class="prose">
+  <h2>El modelo en uso</h2>
+  <p>Cada equipo tiene una fuerza de ataque y una de defensa. Con ellas, más una ventaja de local, se calculan los goles esperados de cada equipo en un partido. A partir de los goles esperados se obtiene la probabilidad de cada marcador, y sumando marcadores salen las probabilidades de local, empate, visitante y de más de 2.5 goles.</p>
+  <ul>
+    <li><strong>Corrección de Dixon-Coles:</strong> ajusta la probabilidad de los marcadores 0-0, 1-0, 0-1 y 1-1, que un modelo de goles independientes calcula mal.</li>
+    <li><strong>Peso por antigüedad:</strong> un partido cuenta la mitad cada vez que pasan {{ half_life }} días. Es la pieza que más mejoró el resultado.</li>
+    <li><strong>Equipos nuevos:</strong> un equipo sin partidos en los datos empieza como equipo promedio.</li>
+  </ul>
+
+  <h2>Cómo se evalúa</h2>
+  <ul>
+    <li><strong>División temporal:</strong> se entrena con las temporadas hasta N y se prueba en la N+1. Nunca se mezclan partidos al azar.</li>
+    <li><strong>Sin fuga de datos:</strong> la predicción de un partido solo usa partidos de fechas anteriores.</li>
+    <li><strong>Métricas:</strong> log loss, Brier y RPS, además de la curva de calibración.</li>
+    <li><strong>Referencias:</strong> un baseline ingenuo (frecuencias históricas), un Elo con ventaja de local y las probabilidades implícitas de las cuotas, quitando el margen de la casa.</li>
+  </ul>
+
+  <h2>Cómo se actualiza esta página</h2>
+  <p>Una tarea automática se ejecuta los martes, los viernes y los sábados por la mañana: descarga los resultados nuevos y los próximos partidos, ajusta el modelo con todo lo jugado hasta ese día, guarda las predicciones en un historial y vuelve a publicar la página. El historial queda versionado en la rama <code>site-data</code> del repositorio con la fecha de cada publicación, y lo ya publicado no se modifica.</p>
+
+  <h2>Límites</h2>
+  <ul>
+    <li>El modelo queda por debajo del mercado. Su ventaja sobre el Elo es pequeña y no es estadísticamente firme.</li>
+    <li>Solo usa resultados de liga: no conoce lesiones, alineaciones, fichajes ni partidos de copa.</li>
+    <li>No es consejo de apuestas.</li>
+  </ul>
+  <p>El código, las pruebas y los informes completos están en <a href="{{ repo_url }}">el repositorio</a>.</p>
+</section>
+{% endblock %}

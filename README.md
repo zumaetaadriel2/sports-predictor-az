@@ -2,7 +2,18 @@
 
 Modelo de análisis y predicción deportiva, empezando por la Premier League. Probabilidades calibradas para resultado 1X2 y goles, comparadas contra el mercado de cuotas.
 
-> Estado: versión v0.1.0 (v1 de la especificación completa). Cambios en `CHANGELOG.md`. Informe en `reports/final_report.md` y prueba final en `reports/final_test.md`.
+> Estado: versión v0.2.0 (v1 de la especificación completa, con demo web). Cambios en `CHANGELOG.md`. Informe en `reports/final_report.md` y prueba final en `reports/final_test.md`.
+
+## Demo
+
+Predicciones de los próximos partidos y resultados del modelo: https://zumaetaadriel2.github.io/sports-predictor-az/
+
+La página se regenera sola con GitHub Actions los martes, los viernes y los sábados por la mañana. El historial de predicciones publicadas vive en la rama `site-data`. Para generarla en local:
+```powershell
+python scripts/download_data.py --include-current --fixtures
+python scripts/predict_next.py    # añade predicciones a site_data/predictions.csv
+python scripts/build_site.py      # escribe el sitio en _site/
+```
 
 ## Resultados
 

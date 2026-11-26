@@ -4,6 +4,25 @@ Todos los cambios relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [Unreleased]
+
+## [0.2.0] - 2026-11-26
+
+Demo web pública con predicciones de los próximos partidos, actualizada automáticamente.
+
+### Added
+- Predicción de los próximos partidos con el modelo Dixon-Coles + antigüedad e historial de predicciones publicadas, que nunca se reescribe.
+- Sitio estático de demostración (`scripts/build_site.py`): próxima jornada, rendimiento en la temporada en curso, resultados históricos, fuerza de los equipos y metodología.
+- Flujos de GitHub Actions: pruebas en cada PR y publicación automática del sitio en GitHub Pages tres veces por semana, con el historial de predicciones en la rama `site-data`.
+- Descarga del archivo de próximos partidos (`scripts/download_data.py --fixtures`).
+- Cuando la fuente no trae próximos partidos (parones, receso de verano), el sitio muestra los últimos 10 partidos con la predicción reconstruida del modelo y del mercado.
+
+### Changed
+- `scripts/download_data.py --include-current` vuelve a bajar siempre la temporada en curso.
+
+### Fixed
+- Las métricas por temporada se guardan con más decimales, para que las cifras que muestra el sitio coincidan con el informe final.
+
 ## [0.1.0] - 2026-11-11
 
 Primera versión: predicción del resultado 1X2 y de los goles de la Premier League, comparada contra el mercado.
@@ -30,4 +49,5 @@ Resultado 1X2, log loss en 3040 partidos de prueba (2018/19 a 2025/26); menos es
 
 El mejor modelo propio supera al baseline ingenuo y al Elo por un margen pequeño, y queda por debajo del mercado.
 
+[0.2.0]: https://github.com/zumaetaadriel2/sports-predictor-az/releases/tag/v0.2.0
 [0.1.0]: https://github.com/zumaetaadriel2/sports-predictor-az/releases/tag/v0.1.0

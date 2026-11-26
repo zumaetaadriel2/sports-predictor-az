@@ -1,0 +1,75 @@
+name: Update site
+
+# Baja los datos nuevos, predice los próximos partidos, guarda el historial y publica el sitio.
+# football-data.co.uk publica los próximos partidos los martes y los viernes; se corre esos dos días
+# y el sábado temprano por si el archivo del viernes llega tarde. También se puede lanzar a mano
+# desde la pestaña Actions.
+# El historial de predicciones vive en la rama site-data, para no hacer commits en develop ni en main.
+on:
+  schedule:
+    - cron: "0 15 * * 2,5"
+    - cron: "0 9 * * 6"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: pytest
+      - name: Download data
+        run: python scripts/download_data.py --include-current --fixtures
+      - name: Restore published predictions
+        run: |
+          if git fetch origin site-data; then
+            git show FETCH_HEAD:predictions.csv > site_data/predictions.csv
+          fi
+      - name: Predict next matches
+        run: python scripts/predict_next.py
+      - name: Build site
+        run: python scripts/build_site.py
+      - name: Save published predictions to the site-data branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch origin site-data; then
+            git worktree add -B site-data "$RUNNER_TEMP/site-data" FETCH_HEAD
+          else
+            git worktree add --orphan -b site-data "$RUNNER_TEMP/site-data"
+          fi
+          cp site_data/predictions.csv "$RUNNER_TEMP/site-data/predictions.csv"
+          cd "$RUNNER_TEMP/site-data"
+          git add predictions.csv
+          if git diff --cached --quiet; then
+            echo "Sin predicciones nuevas."
+          else
+            git commit -m "chore(data): update published predictions"
+            git push origin site-data
+          fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

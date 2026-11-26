@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Sports Predictor{% endblock %}</title>
+  <meta name="description" content="Predicciones de la Premier League con probabilidades calibradas, comparadas contra el mercado de cuotas.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="index.html">Sports Predictor</a>
+      <nav>
+        <a href="index.html">Predicciones</a>
+        <a href="metodologia.html">Metodología</a>
+        <a href="{{ repo_url }}">Código</a>
+      </nav>
+    </div>
+  </header>
+  <main class="wrap">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="wrap site-footer">
+    <p>Actualizado el {{ updated }} · versión {{ version }} · datos de football-data.co.uk.</p>
+    <p>Proyecto educativo. No es consejo de apuestas: el modelo queda por debajo del mercado.</p>
+  </footer>
+</body>
+</html>

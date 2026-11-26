@@ -211,7 +211,7 @@ def main() -> None:
         print("\nGuardado en reports/final_test.md")
         return
 
-    by_season.to_csv(ROOT / "reports" / "model_metrics_by_season.csv", index=False, float_format="%.5f")
+    by_season.to_csv(ROOT / "reports" / "model_metrics_by_season.csv", index=False, float_format="%.7f")
     calibrated = [ELO, DCW, GBM, MARKET]
     calibration = pd.concat(
         [calibration_table(stacked["1X2"][m], y_1x2).assign(model=m) for m in calibrated], ignore_index=True
