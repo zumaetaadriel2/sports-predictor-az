@@ -12,7 +12,8 @@ Uso (desde la raíz del repo):
     python scripts/evaluate_models.py                # desarrollo: temporadas hasta 2025/26
     python scripts/evaluate_models.py --final-test   # prueba final: solo la temporada reservada 2026/27
 
-Salidas del modo normal, en reports/: final_report.md, model_metrics_by_season.csv y model_calibration.png.
+Salidas del modo normal, en reports/: final_report.md, model_metrics_by_season.csv, model_calibration.png,
+betting.md, betting_summary.csv y betting_profit.png (simulación de apuestas).
 La prueba final escribe únicamente reports/final_test.md.
 """
 import argparse
@@ -30,6 +31,7 @@ import pandas as pd  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from sports_predictor.betting import flat_bets  # noqa: E402
 from sports_predictor.calibration import calibration_table  # noqa: E402
 from sports_predictor.ensemble import blend, fit_blend_weights, fit_temperature, temperature_scale  # noqa: E402
 from sports_predictor.football.baselines import (  # noqa: E402
@@ -76,6 +78,9 @@ FREQ, ELO, POISSON, DC, PW, DCW, GBM, GBMT, ENS, ENSC, MARKET = (
     "Mercado: promedio",
 )
 MODELS_1X2 = [FREQ, ELO, POISSON, DC, PW, DCW, GBM, GBMT, ENS, ENSC, MARKET]
+# Simulación de apuestas: cuotas y ventajas mínimas que se prueban.
+BET_ODDS = {"Promedio del mercado": "Avg", "Bet365": "B365", "Mejor cuota del mercado": "Max"}
+BET_THRESHOLDS = [0.0, 0.05, 0.10]
 MODELS_OU = ["Frecuencia histórica", POISSON, DC, PW, DCW, MARKET]
 
 
@@ -110,6 +115,7 @@ def main() -> None:
     rows, chosen, importances = [], [], []
     pooled = {"1X2": {m: [] for m in MODELS_1X2}, "OU": {m: [] for m in MODELS_OU}}
     pooled_y = {"1X2": [], "OU": []}
+    pooled_odds, pooled_seasons = [], []
     for train_seasons, test_season in splits:
         train = np.isin(season, train_seasons)
         test = season == test_season
@@ -168,6 +174,8 @@ def main() -> None:
         })
 
         test_matches = matches[test]
+        pooled_odds.append(test_matches[[f"{p}{o}" for p in BET_ODDS.values() for o in "HDA"]])
+        pooled_seasons.append(season[test])
         freq_over = over[train].mean()
         elo_test = elo_probabilities(elo_diffs[train], outcomes[train], elo_diffs[test])
         dcw_test = outcome_probabilities(m_dcw)
@@ -264,6 +272,8 @@ def main() -> None:
         return
 
     by_season.to_csv(ROOT / "reports" / "model_metrics_by_season.csv", index=False, float_format="%.7f")
+    betting = _betting_report(stacked["1X2"], y_1x2, pd.concat(pooled_odds, ignore_index=True),
+                              np.concatenate(pooled_seasons), len(splits))
     calibrated = [ELO, DCW, ENSC, MARKET]
     calibration = pd.concat(
         [calibration_table(stacked["1X2"][m], y_1x2).assign(model=m) for m in calibrated], ignore_index=True
@@ -319,11 +329,73 @@ def main() -> None:
     print(overall_1x2.to_string(index=False, float_format="%.4f"))
     print("\nMás/menos de 2.5 goles")
     print(overall_ou.to_string(index=False, float_format="%.4f"))
-    print("\nGuardado en reports/: final_report.md, model_metrics_by_season.csv y model_calibration.png")
+    print("\nSimulación de apuestas (ventaja mínima 0 %)")
+    print(betting[betting["Ventaja mínima"] == "0%"].to_string(index=False))
+    print("\nGuardado en reports/: final_report.md, model_metrics_by_season.csv, model_calibration.png, "
+          "betting.md, betting_summary.csv y betting_profit.png")
 
 
 def _two_columns(p_over) -> np.ndarray:
     return np.column_stack([1 - p_over, p_over])
+
+
+def _betting_report(probs: dict, outcomes, odds: pd.DataFrame, seasons, n_seasons: int) -> pd.DataFrame:
+    """Simula apuestas de 1 unidad con el modelo de la web y con la combinación, y escribe el informe."""
+    rows, curves = [], {}
+    for model in (DCW, ENS):
+        for label, prefix in BET_ODDS.items():
+            model_odds = odds[[f"{prefix}H", f"{prefix}D", f"{prefix}A"]].to_numpy()
+            for threshold in BET_THRESHOLDS:
+                bet, profit = flat_bets(probs[model], model_odds, outcomes, threshold)
+                season_roi = [profit[seasons[bet] == s].mean() for s in np.unique(seasons[bet])]
+                rows.append({
+                    "Modelo": model, "Cuotas": label, "Ventaja mínima": f"{threshold:.0%}",
+                    "Apuestas": int(bet.sum()), "Aciertos": f"{(profit > 0).mean():.1%}",
+                    "ROI": f"{profit.mean():+.1%}",
+                    "Error estándar": f"{profit.std(ddof=1) / np.sqrt(len(profit)):.1%}",
+                    "Temporadas en positivo": f"{sum(r > 0 for r in season_roi)} de {len(season_roi)}",
+                })
+                if prefix == "Avg" and threshold == 0.0:
+                    curves[model] = np.cumsum(profit)
+    table = pd.DataFrame(rows)
+    table.to_csv(ROOT / "reports" / "betting_summary.csv", index=False)
+
+    fig, ax = plt.subplots(figsize=(7, 3.6))
+    for model, curve in curves.items():
+        ax.plot(np.arange(1, len(curve) + 1), curve, label=model)
+    ax.axhline(0, color="gray", linewidth=1)
+    ax.set_xlabel("Apuestas realizadas, en orden cronológico")
+    ax.set_ylabel("Ganancia acumulada (unidades)")
+    ax.set_title("Apostando 1 unidad a cuotas promedio del mercado")
+    ax.legend()
+    ax.grid(alpha=0.3)
+    fig.savefig(ROOT / "reports" / "betting_profit.png", dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+    lines = [
+        "# ¿Sirve el modelo para apostar?",
+        "",
+        "Generado por `python scripts/evaluate_models.py`. No editar a mano.",
+        "",
+        f"Simulación sobre los {len(outcomes)} partidos de prueba de {n_seasons} temporadas. Las probabilidades de cada partido "
+        "son las de la evaluación: fuera de muestra y calculadas solo con información anterior al partido.",
+        "",
+        "- **Estrategia:** 1 unidad por partido, al resultado con mayor valor esperado según el modelo "
+        "(probabilidad × cuota − 1), solo si ese valor supera la ventaja mínima. Ganancia: cuota − 1 si acierta, −1 si no.",
+        "- **Cuotas:** las publicadas antes del partido por football-data.co.uk, no las de cierre. "
+        "\"Mejor cuota del mercado\" es la más alta entre todas las casas en cada resultado: en la práctica casi nunca se "
+        "consigue siempre, así que es un límite optimista.",
+        "- **No incluye** comisiones, límites de apuesta ni cuentas restringidas por ganar.",
+        "- **ROI:** ganancia media por unidad apostada. El error estándar indica cuánto puede variar por azar.",
+        "- No es una estrategia recomendada ni consejo de apuestas: sirve para medir si el modelo tiene ventaja sobre el mercado.",
+        "",
+        _markdown_table(table),
+        "",
+        "![Ganancia acumulada](betting_profit.png)",
+        "",
+    ]
+    (ROOT / "reports" / "betting.md").write_text("\n".join(lines), encoding="utf-8")
+    return table
 
 
 def _plot_calibration(calibration: pd.DataFrame, out: Path) -> None:
