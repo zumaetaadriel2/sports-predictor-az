@@ -26,12 +26,14 @@ Resultado 1X2 en 3040 partidos de prueba (temporadas 2018/19 a 2025/26, ventana 
 | LightGBM | 0.9808 | 0.5821 | 0.2028 |
 | Elo fijo | 0.9786 | 0.5807 | 0.2025 |
 | Dixon-Coles + antigüedad | 0.9739 | 0.5783 | 0.2015 |
+| Combinación (Elo + Dixon-Coles + LightGBM) | 0.9716 | 0.5767 | 0.2007 |
 | Mercado (promedio, sin margen) | 0.9584 | 0.5680 | 0.1965 |
 
-- El mejor modelo propio es el de goles con peso por antigüedad: supera al baseline ingenuo y al Elo, y queda por debajo del mercado.
-- La mejora viene del peso por antigüedad. La corrección de Dixon-Coles por sí sola no ayudó, y LightGBM no superó al Elo.
-- La ventaja sobre el Elo es pequeña y no es estadísticamente firme.
-- En la prueba final (100 partidos de 2026/27, nunca usados para decidir nada) el orden se mantiene: Dixon-Coles + antigüedad 1.0203, Elo 1.0207, mercado 1.0121.
+- El mejor modelo propio es la combinación ponderada de Elo, Dixon-Coles + antigüedad y LightGBM, con pesos elegidos solo con temporadas de entrenamiento. Supera al baseline ingenuo, al Elo y a cada modelo por separado, y queda por debajo del mercado.
+- El sitio todavía usa Dixon-Coles + antigüedad, el mejor modelo individual.
+- La mejora más grande vino del peso por antigüedad. La corrección de Dixon-Coles por sí sola no ayudó; LightGBM, aun con hiperparámetros ajustados, no superó al Elo; y la recalibración con temperatura no mejoró la combinación.
+- Las ventajas sobre el Elo son pequeñas y no son estadísticamente firmes.
+- En la prueba final (100 partidos de 2026/27, nunca usados para decidir nada) el orden se mantiene: combinación 1.0197, Dixon-Coles + antigüedad 1.0203, Elo 1.0207, mercado 1.0121.
 
 No se promete ganarle a las casas de apuestas; el proyecto mide con honestidad qué tan cerca queda.
 
