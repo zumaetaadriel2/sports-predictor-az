@@ -31,6 +31,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from sports_predictor.calibration import calibration_table  # noqa: E402
+from sports_predictor.ensemble import blend, fit_blend_weights, fit_temperature, temperature_scale  # noqa: E402
 from sports_predictor.football.baselines import (  # noqa: E402
     elo_probabilities,
     elo_rating_diffs,
@@ -62,13 +63,19 @@ LGBM_PARAMS = dict(
     subsample=0.8, subsample_freq=1, colsample_bytree=0.8, reg_lambda=5.0,
     random_state=SEED, n_jobs=1, deterministic=True, force_row_wise=True, verbose=-1,
 )
+# LightGBM ajustado: combinaciones que se prueban en cada ventana, sobre los valores de LGBM_PARAMS.
+LGBM_GRID = [
+    {"num_leaves": leaves, "n_estimators": trees, "min_child_samples": min_child}
+    for leaves in (4, 8) for trees in (100, 200, 400) for min_child in (50, 150)
+]
 GBM_FEATURES = ["elo_diff", "expected_goals_home", "expected_goals_away"] + FEATURE_COLS
 
-FREQ, ELO, POISSON, DC, PW, DCW, GBM, MARKET = (
+FREQ, ELO, POISSON, DC, PW, DCW, GBM, GBMT, ENS, ENSC, MARKET = (
     "Frecuencias históricas", "Elo fijo", "Poisson", "Dixon-Coles", "Poisson + antigüedad",
-    "Dixon-Coles + antigüedad", "LightGBM", "Mercado: promedio",
+    "Dixon-Coles + antigüedad", "LightGBM", "LightGBM ajustado", "Combinación", "Combinación calibrada",
+    "Mercado: promedio",
 )
-MODELS_1X2 = [FREQ, ELO, POISSON, DC, PW, DCW, GBM, MARKET]
+MODELS_1X2 = [FREQ, ELO, POISSON, DC, PW, DCW, GBM, GBMT, ENS, ENSC, MARKET]
 MODELS_OU = ["Frecuencia histórica", POISSON, DC, PW, DCW, MARKET]
 
 
@@ -129,17 +136,55 @@ def main() -> None:
         gain = gbm.booster_.feature_importance(importance_type="gain")
         importances.append(gain / gain.sum())
 
+        # Elecciones con validación interna: se repite la ventana expansiva DENTRO de las temporadas de
+        # entrenamiento (ajustar con las primeras, validar en la siguiente). La temporada de prueba no
+        # interviene en ninguna elección.
+        inner = list(expanding_season_splits(train_seasons, min_train_seasons=2))
+        inner_val = np.zeros(len(matches), dtype=bool)
+        elo_inner = np.full((len(matches), 3), np.nan)
+        gbm_inner = [np.full((len(matches), 3), np.nan) for _ in LGBM_GRID]
+        for fit_seasons, val_season in inner:
+            fit, v = np.isin(season, fit_seasons), season == val_season
+            inner_val |= v
+            elo_inner[v] = elo_probabilities(elo_diffs[fit], outcomes[fit], elo_diffs[v])
+            for i, params in enumerate(LGBM_GRID):
+                model = lgb.LGBMClassifier(**{**LGBM_PARAMS, **params}).fit(features[fit], outcomes[fit])
+                gbm_inner[i][v] = model.predict_proba(features[v])
+        y_inner = outcomes[inner_val]
+        best_gbm = min(range(len(LGBM_GRID)), key=lambda i: log_loss(gbm_inner[i][inner_val], y_inner))
+        gbm_params = {**LGBM_PARAMS, **LGBM_GRID[best_gbm]}
+        gbm_tuned = lgb.LGBMClassifier(**gbm_params).fit(features[train], outcomes[train])
+
+        # Combinación de Elo, Dixon-Coles + antigüedad y LightGBM ajustado, con pesos y temperatura
+        # elegidos en esa misma validación interna.
+        inner_components = [elo_inner[inner_val], dc_probs[best][inner_val], gbm_inner[best_gbm][inner_val]]
+        weights = fit_blend_weights(inner_components, y_inner)
+        temperature = fit_temperature(blend(inner_components, weights), y_inner)
+        chosen[-1].update({
+            "LightGBM (hojas / árboles / mín. por hoja)":
+                "{num_leaves} / {n_estimators} / {min_child_samples}".format(**gbm_params),
+            "Pesos Elo / Dixon-Coles / LightGBM": " / ".join(f"{w:.1f}" for w in weights),
+            "Temperatura": f"{temperature:.2f}",
+        })
+
         test_matches = matches[test]
         freq_over = over[train].mean()
+        elo_test = elo_probabilities(elo_diffs[train], outcomes[train], elo_diffs[test])
+        dcw_test = outcome_probabilities(m_dcw)
+        gbmt_test = gbm_tuned.predict_proba(features[test])
+        ensemble = blend([elo_test, dcw_test, gbmt_test], weights)
         probs = {
             "1X2": {
                 FREQ: frequency_probabilities(matches[train], n_test),
-                ELO: elo_probabilities(elo_diffs[train], outcomes[train], elo_diffs[test]),
+                ELO: elo_test,
                 POISSON: outcome_probabilities(m_poisson),
                 DC: outcome_probabilities(m_dc),
                 PW: outcome_probabilities(m_pw),
-                DCW: outcome_probabilities(m_dcw),
+                DCW: dcw_test,
                 GBM: gbm.predict_proba(features[test]),
+                GBMT: gbmt_test,
+                ENS: ensemble,
+                ENSC: temperature_scale(ensemble, temperature),
                 MARKET: implied_probabilities(test_matches[["AvgH", "AvgD", "AvgA"]]),
             },
             # Columnas en orden (menos de 2.5, más de 2.5), para que la clase 1 sea "más de 2.5".
@@ -183,6 +228,13 @@ def main() -> None:
         f"- **LightGBM:** {len(GBM_FEATURES)} variables previas al partido: diferencia de Elo, goles esperados del modelo de "
         f"goles, y forma de los últimos 5 partidos de cada equipo (puntos, goles, tiros a puerta, puntos en su condición de "
         f"local o visitante, días de descanso). Hiperparámetros fijos, sin ajustar; semilla {SEED}.",
+        f"- **LightGBM ajustado:** las mismas variables; en cada ventana se prueban {len(LGBM_GRID)} combinaciones de "
+        "hiperparámetros (hojas, árboles y mínimo de partidos por hoja) repitiendo la ventana expansiva dentro de las "
+        "temporadas de entrenamiento, y se queda la de menor log loss.",
+        "- **Combinación:** promedio ponderado de Elo fijo, Dixon-Coles + antigüedad y LightGBM ajustado, con pesos "
+        "múltiplos de 0,1 elegidos con esa misma validación interna. **Combinación calibrada:** además aplica un escalado "
+        "de temperatura (cada probabilidad elevada a 1/T y renormalizada), con T elegida igual. La temporada de prueba "
+        "no interviene en ninguna elección.",
         "- **Mercado:** promedio de las casas, con el margen removido (normalización proporcional).",
         "- En todas las métricas, menos es mejor.",
     ]
@@ -212,7 +264,7 @@ def main() -> None:
         return
 
     by_season.to_csv(ROOT / "reports" / "model_metrics_by_season.csv", index=False, float_format="%.7f")
-    calibrated = [ELO, DCW, GBM, MARKET]
+    calibrated = [ELO, DCW, ENSC, MARKET]
     calibration = pd.concat(
         [calibration_table(stacked["1X2"][m], y_1x2).assign(model=m) for m in calibrated], ignore_index=True
     )
@@ -233,7 +285,7 @@ def main() -> None:
         "",
         f"## Resultado 1X2 (los {len(y_1x2)} partidos de prueba juntos)", "", _markdown_table(overall_1x2), "",
         f"## Más/menos de 2.5 goles (los {len(y_ou)} partidos de prueba juntos)", "", _markdown_table(overall_ou), "",
-        "## Vida media elegida en cada ventana", "", _markdown_table(pd.DataFrame(chosen)), "",
+        "## Elecciones hechas en cada ventana (solo con temporadas de entrenamiento)", "", _markdown_table(pd.DataFrame(chosen)), "",
     ]
     for market, title, models in [("1X2", "1X2", MODELS_1X2), ("OU", "más/menos de 2.5 goles", MODELS_OU)]:
         pivot = by_season[by_season["market"] == market].pivot(index="test_season", columns="model", values="log_loss")[models]
