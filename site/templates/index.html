@@ -112,6 +112,24 @@
 </section>
 
 <section>
+  <h2>¿Sirve para apostar?</h2>
+  <p>Simulación sobre los mismos 3040 partidos de prueba: 1 unidad por partido al resultado donde el modelo ve más valor según la cuota (probabilidad × cuota − 1 mayor que cero). Cada probabilidad usa solo información anterior al partido.</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Modelo</th><th>Cuotas</th><th>Apuestas</th><th>ROI</th><th>Error estándar</th><th>Temporadas en positivo</th></tr></thead>
+      <tbody>
+        {% for b in betting %}
+        <tr><td>{{ b.model }}</td><td>{{ b.odds }}</td><td>{{ b.bets }}</td><td>{{ b.roi }}</td><td>{{ b.se }}</td><td>{{ b.seasons }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <img class="chart" src="betting_profit.png" alt="Ganancia acumulada apostando 1 unidad a cuotas promedio del mercado">
+  <p><strong>Conclusión:</strong> no. Con cuotas reales el modelo pierde aproximadamente el margen de la casa, y ni con la mejor cuota de todo el mercado (que casi nunca se consigue) aparece una ventaja distinguible del azar. El mercado predice mejor que el modelo, así que cuando el modelo cree ver valor, casi siempre se equivoca él.</p>
+  <p class="muted">No incluye comisiones ni límites de apuesta. No es consejo de apuestas. Detalle en <a href="{{ repo_url }}/blob/develop/reports/betting.md">reports/betting.md</a>.</p>
+</section>
+
+<section>
   <h2>Fuerza de los equipos</h2>
   <p>Goles que el modelo espera a favor y en contra de cada equipo contra un rival promedio, en campo neutral.</p>
   <div class="table-scroll">
