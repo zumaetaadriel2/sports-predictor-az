@@ -35,6 +35,7 @@ Resultado 1X2 en 3040 partidos de prueba (temporadas 2018/19 a 2025/26, ventana 
 - El sitio todavía usa Dixon-Coles + antigüedad: casi empatado con Poisson + antigüedad en desarrollo y algo mejor en la prueba final.
 - La mejora más grande vino del peso por antigüedad. La corrección de Dixon-Coles por sí sola no ayudó; LightGBM, aun con hiperparámetros ajustados, no superó al Elo; y la recalibración con temperatura no mejoró la combinación.
 - En la prueba final (100 partidos de 2026/27, nunca usados para elegir ningún parámetro; con tan pocos partidos, solo orientativa) el orden se mantiene: combinación 1.0197, Dixon-Coles + antigüedad 1.0203, Elo 1.0207, mercado 1.0121.
+- **¿Sirve para apostar? No.** Apostando 1 unidad al resultado donde el modelo ve valor, en los 3040 partidos de prueba el ROI es de −6,4 % a cuotas promedio, −3,5 % con Bet365 y −0,3 % con la mejor cuota de todo el mercado, que casi nunca se consigue. Detalle en `reports/betting.md`.
 
 No se promete ganarle a las casas de apuestas; el proyecto mide con honestidad qué tan cerca queda.
 

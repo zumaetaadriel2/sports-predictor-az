@@ -9,6 +9,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ### Added
 - Combinación ponderada de Elo, Dixon-Coles + antigüedad y LightGBM, con pesos elegidos en cada ventana repitiendo la ventana expansiva dentro de las temporadas de entrenamiento (log loss 1X2 0.9716, el mejor modelo propio).
 - LightGBM con hiperparámetros ajustados de la misma forma, y recalibración con escalado de temperatura. Ninguno de los dos mejoró de forma apreciable.
+- Simulación de apuestas (`reports/betting.md` y sección "¿Sirve para apostar?" en el sitio): con cuotas reales el modelo pierde aproximadamente el margen de la casa, y ni con la mejor cuota del mercado aparece una ventaja.
 
 ## [0.2.0] - 2026-11-26
 
