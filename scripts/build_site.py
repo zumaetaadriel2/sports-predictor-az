@@ -83,6 +83,7 @@ def main() -> None:
         "recent": backtest["recent"] if backtest else [],
         "strengths": _strengths(matches, season, as_of),
         "models": _historical_models(),
+        "betting": _betting_summary(),
         "half_life": int(HALF_LIFE_DAYS),
     }
 
@@ -92,6 +93,7 @@ def main() -> None:
         (OUT / page).write_text(env.get_template(page).render(**context), encoding="utf-8")
     shutil.copy(ROOT / "site" / "static" / "style.css", OUT / "style.css")
     shutil.copy(ROOT / "reports" / "model_calibration.png", OUT / "model_calibration.png")
+    shutil.copy(ROOT / "reports" / "betting_profit.png", OUT / "betting_profit.png")
     print(f"Sitio generado en {OUT.relative_to(ROOT)}/ con fecha {as_of.date()}: "
           f"{len(upcoming)} partidos próximos, {len(settled)} predicciones publicadas con resultado.")
 
@@ -200,6 +202,17 @@ def _strengths(matches: pd.DataFrame, season: str, as_of) -> list[dict]:
         {"rank": i + 1, "team": r.team, "goals_for": f"{r.goals_for:.2f}", "goals_against": f"{r.goals_against:.2f}",
          "difference": f"{r.difference:+.2f}"}
         for i, r in enumerate(table.itertuples(index=False))
+    ]
+
+
+def _betting_summary() -> list[dict]:
+    """Resultado de la simulación de apuestas, sin ventaja mínima (ver reports/betting.md)."""
+    table = pd.read_csv(ROOT / "reports" / "betting_summary.csv", dtype=str)
+    table = table[table["Ventaja mínima"] == "0%"]
+    return [
+        {"model": r["Modelo"], "odds": r["Cuotas"], "bets": r["Apuestas"], "roi": r["ROI"],
+         "se": r["Error estándar"], "seasons": r["Temporadas en positivo"]}
+        for _, r in table.iterrows()
     ]
 
 

@@ -7,6 +7,8 @@ Generado por `python scripts/evaluate_models.py`. No editar a mano.
 - **Elo fijo:** K = 20, ventaja de local = 60.
 - **Modelos de goles:** penalización = 10, reajuste en cada fecha con los partidos anteriores. Dixon-Coles corrige los marcadores 0-0, 1-0, 0-1 y 1-1. El peso por antigüedad hace que un partido cuente la mitad cada vez que pasa una vida media; la vida media se elige en cada ventana, entre ['sin peso', 1095, 730, 365, 180] días, con el log loss de las temporadas de entrenamiento.
 - **LightGBM:** 17 variables previas al partido: diferencia de Elo, goles esperados del modelo de goles, y forma de los últimos 5 partidos de cada equipo (puntos, goles, tiros a puerta, puntos en su condición de local o visitante, días de descanso). Hiperparámetros fijos, sin ajustar; semilla 0.
+- **LightGBM ajustado:** las mismas variables; en cada ventana se prueban 12 combinaciones de hiperparámetros (hojas, árboles y mínimo de partidos por hoja) repitiendo la ventana expansiva dentro de las temporadas de entrenamiento, y se queda la de menor log loss.
+- **Combinación:** promedio ponderado de Elo fijo, Dixon-Coles + antigüedad y LightGBM ajustado, con pesos múltiplos de 0,1 elegidos con esa misma validación interna. **Combinación calibrada:** además aplica un escalado de temperatura (cada probabilidad elevada a 1/T y renormalizada), con T elegida igual. La temporada de prueba no interviene en ninguna elección.
 - **Mercado:** promedio de las casas, con el margen removido (normalización proporcional).
 - En todas las métricas, menos es mejor.
 
@@ -21,6 +23,9 @@ Generado por `python scripts/evaluate_models.py`. No editar a mano.
 | Poisson + antigüedad | 0.9731 | 0.5779 | 0.2014 |
 | Dixon-Coles + antigüedad | 0.9739 | 0.5783 | 0.2015 |
 | LightGBM | 0.9808 | 0.5821 | 0.2028 |
+| LightGBM ajustado | 0.9786 | 0.5809 | 0.2024 |
+| Combinación | 0.9716 | 0.5767 | 0.2007 |
+| Combinación calibrada | 0.9717 | 0.5768 | 0.2008 |
 | Mercado: promedio | 0.9584 | 0.5680 | 0.1965 |
 
 ## Más/menos de 2.5 goles (los 3040 partidos de prueba juntos)
@@ -34,31 +39,31 @@ Generado por `python scripts/evaluate_models.py`. No editar a mano.
 | Dixon-Coles + antigüedad | 0.6822 | 0.4890 |
 | Mercado: promedio | 0.6755 | 0.4826 |
 
-## Vida media elegida en cada ventana
+## Elecciones hechas en cada ventana (solo con temporadas de entrenamiento)
 
-| Temporada de prueba | Vida media elegida (días) |
-|---|---|
-| 2018/19 | 365 |
-| 2019/20 | 365 |
-| 2020/21 | 365 |
-| 2021/22 | 365 |
-| 2022/23 | 365 |
-| 2023/24 | 365 |
-| 2024/25 | 365 |
-| 2025/26 | 365 |
+| Temporada de prueba | Vida media elegida (días) | LightGBM (hojas / árboles / mín. por hoja) | Pesos Elo / Dixon-Coles / LightGBM | Temperatura |
+|---|---|---|---|---|
+| 2018/19 | 365 | 4 / 100 / 50 | 0.1 / 0.7 / 0.2 | 0.92 |
+| 2019/20 | 365 | 4 / 100 / 50 | 0.2 / 0.5 / 0.3 | 0.88 |
+| 2020/21 | 365 | 4 / 100 / 50 | 0.2 / 0.6 / 0.2 | 0.90 |
+| 2021/22 | 365 | 4 / 100 / 50 | 0.0 / 0.7 / 0.3 | 0.92 |
+| 2022/23 | 365 | 4 / 100 / 50 | 0.1 / 0.6 / 0.3 | 0.93 |
+| 2023/24 | 365 | 4 / 100 / 50 | 0.2 / 0.5 / 0.3 | 0.96 |
+| 2024/25 | 365 | 4 / 100 / 50 | 0.2 / 0.5 / 0.3 | 0.94 |
+| 2025/26 | 365 | 4 / 100 / 50 | 0.3 / 0.5 / 0.2 | 0.96 |
 
 ## Log loss por temporada de prueba: 1X2
 
-| Temporada de prueba | Frecuencias históricas | Elo fijo | Poisson | Dixon-Coles | Poisson + antigüedad | Dixon-Coles + antigüedad | LightGBM | Mercado: promedio |
-|---|---|---|---|---|---|---|---|---|
-| 2018/19 | 1.0469 | 0.9061 | 0.9032 | 0.9077 | 0.8985 | 0.9035 | 0.9010 | 0.8936 |
-| 2019/20 | 1.0645 | 0.9852 | 0.9712 | 0.9713 | 0.9720 | 0.9723 | 0.9895 | 0.9726 |
-| 2020/21 | 1.0890 | 1.0506 | 1.0256 | 1.0284 | 1.0136 | 1.0156 | 1.0327 | 1.0042 |
-| 2021/22 | 1.0695 | 0.9524 | 0.9516 | 0.9517 | 0.9532 | 0.9532 | 0.9580 | 0.9360 |
-| 2022/23 | 1.0510 | 0.9841 | 1.0188 | 1.0199 | 0.9937 | 0.9944 | 0.9912 | 0.9658 |
-| 2023/24 | 1.0540 | 0.9261 | 0.9419 | 0.9424 | 0.9333 | 0.9328 | 0.9288 | 0.9093 |
-| 2024/25 | 1.0811 | 0.9830 | 1.0552 | 1.0554 | 0.9933 | 0.9932 | 0.9978 | 0.9706 |
-| 2025/26 | 1.0838 | 1.0415 | 1.0579 | 1.0568 | 1.0275 | 1.0261 | 1.0477 | 1.0153 |
+| Temporada de prueba | Frecuencias históricas | Elo fijo | Poisson | Dixon-Coles | Poisson + antigüedad | Dixon-Coles + antigüedad | LightGBM | LightGBM ajustado | Combinación | Combinación calibrada | Mercado: promedio |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2018/19 | 1.0469 | 0.9061 | 0.9032 | 0.9077 | 0.8985 | 0.9035 | 0.9010 | 0.9023 | 0.8994 | 0.8949 | 0.8936 |
+| 2019/20 | 1.0645 | 0.9852 | 0.9712 | 0.9713 | 0.9720 | 0.9723 | 0.9895 | 0.9838 | 0.9709 | 0.9733 | 0.9726 |
+| 2020/21 | 1.0890 | 1.0506 | 1.0256 | 1.0284 | 1.0136 | 1.0156 | 1.0327 | 1.0279 | 1.0185 | 1.0230 | 1.0042 |
+| 2021/22 | 1.0695 | 0.9524 | 0.9516 | 0.9517 | 0.9532 | 0.9532 | 0.9580 | 0.9569 | 0.9515 | 0.9493 | 0.9360 |
+| 2022/23 | 1.0510 | 0.9841 | 1.0188 | 1.0199 | 0.9937 | 0.9944 | 0.9912 | 0.9868 | 0.9875 | 0.9880 | 0.9658 |
+| 2023/24 | 1.0540 | 0.9261 | 0.9419 | 0.9424 | 0.9333 | 0.9328 | 0.9288 | 0.9298 | 0.9276 | 0.9259 | 0.9093 |
+| 2024/25 | 1.0811 | 0.9830 | 1.0552 | 1.0554 | 0.9933 | 0.9932 | 0.9978 | 0.9977 | 0.9884 | 0.9893 | 0.9706 |
+| 2025/26 | 1.0838 | 1.0415 | 1.0579 | 1.0568 | 1.0275 | 1.0261 | 1.0477 | 1.0438 | 1.0286 | 1.0298 | 1.0153 |
 
 ## Log loss por temporada de prueba: más/menos de 2.5 goles
 
@@ -133,19 +138,20 @@ Se juntan las tres probabilidades de cada partido y se agrupan en tramos de 10 p
 | 0.8 a 0.9 | 55 | 0.8349 | 0.8909 |
 | 0.9 a 1.0 | 2 | 0.9093 | 1.0000 |
 
-### LightGBM
+### Combinación calibrada
 
 | Tramo | n | predicho | observado |
 |---|---|---|---|
-| 0.0 a 0.1 | 435 | 0.0798 | 0.1149 |
-| 0.1 a 0.2 | 1942 | 0.1552 | 0.1715 |
-| 0.2 a 0.3 | 2668 | 0.2489 | 0.2669 |
-| 0.3 a 0.4 | 1370 | 0.3446 | 0.3328 |
-| 0.4 a 0.5 | 923 | 0.4476 | 0.4193 |
-| 0.5 a 0.6 | 682 | 0.5479 | 0.4985 |
-| 0.6 a 0.7 | 525 | 0.6501 | 0.6438 |
-| 0.7 a 0.8 | 457 | 0.7493 | 0.7133 |
-| 0.8 a 0.9 | 118 | 0.8226 | 0.8305 |
+| 0.0 a 0.1 | 318 | 0.0749 | 0.0912 |
+| 0.1 a 0.2 | 1613 | 0.1577 | 0.1531 |
+| 0.2 a 0.3 | 3334 | 0.2476 | 0.2600 |
+| 0.3 a 0.4 | 1162 | 0.3487 | 0.3503 |
+| 0.4 a 0.5 | 981 | 0.4490 | 0.4159 |
+| 0.5 a 0.6 | 727 | 0.5475 | 0.5378 |
+| 0.6 a 0.7 | 517 | 0.6481 | 0.6325 |
+| 0.7 a 0.8 | 363 | 0.7433 | 0.7466 |
+| 0.8 a 0.9 | 104 | 0.8338 | 0.8846 |
+| 0.9 a 1.0 | 1 | 0.9149 | 1.0000 |
 
 ### Mercado: promedio
 

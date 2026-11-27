@@ -6,6 +6,15 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-27
+
+Combinación de modelos y simulación de apuestas contra el mercado.
+
+### Added
+- Combinación ponderada de Elo, Dixon-Coles + antigüedad y LightGBM, con pesos elegidos en cada ventana repitiendo la ventana expansiva dentro de las temporadas de entrenamiento (log loss 1X2 0.9716, el mejor modelo propio).
+- LightGBM con hiperparámetros ajustados de la misma forma, y recalibración con escalado de temperatura. Ninguno de los dos mejoró de forma apreciable.
+- Simulación de apuestas (`reports/betting.md` y sección "¿Sirve para apostar?" en el sitio): con cuotas reales el modelo pierde aproximadamente el margen de la casa, y ni con la mejor cuota del mercado aparece una ventaja.
+
 ## [0.2.0] - 2026-11-26
 
 Demo web pública con predicciones de los próximos partidos, actualizada automáticamente.
@@ -49,5 +58,6 @@ Resultado 1X2, log loss en 3040 partidos de prueba (2018/19 a 2025/26); menos es
 
 El mejor modelo propio supera al baseline ingenuo y al Elo por un margen pequeño, y queda por debajo del mercado.
 
+[0.3.0]: https://github.com/zumaetaadriel2/sports-predictor-az/releases/tag/v0.3.0
 [0.2.0]: https://github.com/zumaetaadriel2/sports-predictor-az/releases/tag/v0.2.0
 [0.1.0]: https://github.com/zumaetaadriel2/sports-predictor-az/releases/tag/v0.1.0

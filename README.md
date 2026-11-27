@@ -2,7 +2,7 @@
 
 Modelo de análisis y predicción deportiva, empezando por la Premier League. Probabilidades calibradas para resultado 1X2 y goles, comparadas contra el mercado de cuotas.
 
-> Estado: versión v0.2.0 (v1 de la especificación completa, con demo web). Cambios en `CHANGELOG.md`. Informe en `reports/final_report.md` y prueba final en `reports/final_test.md`.
+> Estado: versión v0.3.0 (v1 de la especificación completa, con demo web, combinación de modelos y simulación de apuestas). Cambios en `CHANGELOG.md`. Informe en `reports/final_report.md` y prueba final en `reports/final_test.md`.
 
 ## Demo
 
@@ -26,12 +26,16 @@ Resultado 1X2 en 3040 partidos de prueba (temporadas 2018/19 a 2025/26, ventana 
 | LightGBM | 0.9808 | 0.5821 | 0.2028 |
 | Elo fijo | 0.9786 | 0.5807 | 0.2025 |
 | Dixon-Coles + antigüedad | 0.9739 | 0.5783 | 0.2015 |
+| Poisson + antigüedad | 0.9731 | 0.5779 | 0.2014 |
+| Combinación (Elo + Dixon-Coles + LightGBM) | 0.9716 | 0.5767 | 0.2007 |
 | Mercado (promedio, sin margen) | 0.9584 | 0.5680 | 0.1965 |
 
-- El mejor modelo propio es el de goles con peso por antigüedad: supera al baseline ingenuo y al Elo, y queda por debajo del mercado.
-- La mejora viene del peso por antigüedad. La corrección de Dixon-Coles por sí sola no ayudó, y LightGBM no superó al Elo.
-- La ventaja sobre el Elo es pequeña y no es estadísticamente firme.
-- En la prueba final (100 partidos de 2026/27, nunca usados para decidir nada) el orden se mantiene: Dixon-Coles + antigüedad 1.0203, Elo 1.0207, mercado 1.0121.
+- El mejor modelo propio es la combinación ponderada de Elo, Dixon-Coles + antigüedad y LightGBM, con pesos elegidos solo con temporadas de entrenamiento. Queda por debajo del mercado (diferencia de 0.013 por partido, clara).
+- Frente al Elo y a LightGBM la ventaja de la combinación es pequeña pero consistente (0.007 de log loss por partido, unas 2,6 y 3,3 veces su error estándar). Frente al mejor modelo individual, Poisson + antigüedad, la ventaja (0.0016) no es estadísticamente firme.
+- El sitio todavía usa Dixon-Coles + antigüedad: casi empatado con Poisson + antigüedad en desarrollo y algo mejor en la prueba final.
+- La mejora más grande vino del peso por antigüedad. La corrección de Dixon-Coles por sí sola no ayudó; LightGBM, aun con hiperparámetros ajustados, no superó al Elo; y la recalibración con temperatura no mejoró la combinación.
+- En la prueba final (100 partidos de 2026/27, nunca usados para elegir ningún parámetro; con tan pocos partidos, solo orientativa) el orden se mantiene: combinación 1.0197, Dixon-Coles + antigüedad 1.0203, Elo 1.0207, mercado 1.0121.
+- **¿Sirve para apostar? No.** Apostando 1 unidad al resultado donde el modelo ve valor, en los 3040 partidos de prueba el ROI es de −6,4 % a cuotas promedio, −3,5 % con Bet365 y −0,3 % con la mejor cuota de todo el mercado, que casi nunca se consigue. Detalle en `reports/betting.md`.
 
 No se promete ganarle a las casas de apuestas; el proyecto mide con honestidad qué tan cerca queda.
 
